@@ -35,6 +35,16 @@ def session(test_engine):
 
 
 @pytest.fixture
+def db(test_engine):
+    from app.database import init_db
+    from app.models import ProductCodeCounter  # noqa: F401 — ensure models are registered
+
+    init_db()
+    with Session(test_engine) as s:
+        yield s
+
+
+@pytest.fixture
 def client(test_engine):
     from fastapi.testclient import TestClient
     from app.main import app

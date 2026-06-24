@@ -26,6 +26,13 @@ def get_session() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    # 0.2: import app.models here so SQLModel.metadata picks up table definitions
+    import app.models  # noqa: F401 — registers all table classes with SQLModel.metadata
+    from app.models.counter import ProductCodeCounter
+
     settings.db_path.parent.mkdir(parents=True, exist_ok=True)
     SQLModel.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        if session.get(ProductCodeCounter, 1) is None:
+            session.add(ProductCodeCounter(id=1, last_value=0))
+            session.commit()
