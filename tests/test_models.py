@@ -105,6 +105,14 @@ class TestProduct:
         db.refresh(p)
         assert p.status == ProductStatus.archived
 
+    def test_created_at_set_on_insert(self, db: Session):
+        p = _product()
+        db.add(p)
+        db.commit()
+        db.refresh(p)
+        assert p.created_at is not None
+        assert isinstance(p.created_at, _dt.datetime)
+
 
 class TestMovement:
     def test_create_movement(self, db: Session):

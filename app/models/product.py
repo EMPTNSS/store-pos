@@ -14,8 +14,8 @@ class UnitEnum(str, Enum):
     meter = "м"
     liter = "л"
     pack = "упак"
-    set_ = "компл"
-
+    pair = "пара"
+    bottle = "бутылка"
 
 class ProductStatus(str, Enum):
     active = "активный"
@@ -25,12 +25,13 @@ class ProductStatus(str, Enum):
 class Product(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    article: str
+    article: Optional[str] = Field(default=None)
     numeric_code: str = Field(unique=True)
     qr_code: Optional[str] = Field(default=None, unique=True)
     price_sell: int
     price_buy: int
     unit: UnitEnum
-    min_stock: Decimal = Field(sa_type=quantity_column())
+    min_stock: Decimal = Field(default=Decimal("0"), sa_type=quantity_column())
     status: ProductStatus = Field(default=ProductStatus.active)
     quantity_current: Decimal = Field(default=Decimal("0"), sa_type=quantity_column())
+    created_at: _dt.datetime = Field(default_factory=_dt.datetime.now)
