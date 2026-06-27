@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Касса — POS{% endblock %}
+
+{% block content %}
+<style>
+    .cart-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .cart-table th, .cart-table td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: left; }
+    .cart-table th { font-size: 0.8rem; color: #666; text-transform: uppercase; }
+    .cart-table td.num { text-align: right; white-space: nowrap; }
+    .cart-table input[type="text"] { width: 90px; display: inline-block; margin: 0; }
+    .cart-empty { color: #888; margin-top: 16px; }
+    .totals { margin-top: 16px; text-align: right; }
+    .totals .subtotal, .totals .rounding { color: #666; font-size: 0.95rem; }
+    .grand-total { margin-top: 4px; font-size: 1.3rem; font-weight: 700; }
+    .add-row { display: flex; gap: 12px; align-items: flex-end; }
+    .add-row > div { flex: 1; }
+    .add-row button, .btn { padding: 10px 20px; background: #2563eb; color: #fff; border: none;
+        border-radius: 4px; font-size: 1rem; cursor: pointer; }
+    .btn-clear { background: #c0392b; }
+    .inline-form { display: inline; }
+    .link-btn { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 0.9rem; }
+</style>
+
+<h1>Касса</h1>
+
+<form class="add-row" hx-post="/cashier/items" hx-target="#cart" hx-swap="innerHTML"
+      hx-on::after-request="this.reset(); this.querySelector('input').focus()">
+    <div>
+        <label for="numeric_code">Числовой код товара</label>
+        <input type="text" id="numeric_code" name="numeric_code" autofocus
+               placeholder="000001" autocomplete="off">
+    </div>
+    <button type="submit">Добавить</button>
+</form>
+
+<div id="cart">
+    {% include "cashier/_cart.html" %}
+</div>
+{% endblock %}

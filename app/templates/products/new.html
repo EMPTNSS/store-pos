@@ -32,12 +32,12 @@
     <input type="text" id="article" name="article"
            value="{{ values.get('article', '') }}" placeholder="AB-12345">
 
-    <label for="price_buy">Цена закупки (₴) <span class="required">*</span></label>
+    <label for="price_buy">Цена закупки (₽) <span class="required">*</span></label>
     <input type="text" id="price_buy" name="price_buy" required
            value="{{ values.get('price_buy', '') }}" placeholder="45.00">
-    <span class="hint">В гривнах с копейками: 45.50 → система сохранит 4550 коп.</span>
+    <span class="hint">В рублях с копейками: 45.50 → система сохранит 4550 коп.</span>
 
-    <label for="price_sell">Цена продажи (₴) <span class="required">*</span></label>
+    <label for="price_sell">Цена продажи (₽) <span class="required">*</span></label>
     <input type="text" id="price_sell" name="price_sell" required
            value="{{ values.get('price_sell', '') }}" placeholder="69.90">
 

@@ -1,0 +1,57 @@
+{% if error %}
+<div class="errors"><ul><li>{{ error }}</li></ul></div>
+{% endif %}
+
+{% if cart.lines %}
+<table class="cart-table">
+    <thead>
+        <tr>
+            <th>Товар</th>
+            <th>Цена</th>
+            <th>Количество</th>
+            <th class="num">Сумма</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for line in cart.lines %}
+        <tr>
+            <td>{{ line.name }}</td>
+            <td class="num">{{ line.price_sell | money }} ₽</td>
+            <td>
+                <form class="inline-form" hx-post="/cashier/items/{{ line.line_id }}/quantity"
+                      hx-target="#cart" hx-swap="innerHTML">
+                    <input type="text" name="quantity" value="{{ line.quantity | string }}"
+                           autocomplete="off">
+                    {{ line.unit.value }}
+                    <button type="submit" class="link-btn" title="Применить">↵</button>
+                </form>
+            </td>
+            <td class="num">{{ line.total | money }} ₽</td>
+            <td>
+                <form class="inline-form" hx-post="/cashier/items/{{ line.line_id }}/delete"
+                      hx-target="#cart" hx-swap="innerHTML">
+                    <button type="submit" class="link-btn">✕ убрать</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="totals">
+    {% if cart.rounding %}
+    <div class="subtotal">Подытог: {{ cart.subtotal | money }} ₽</div>
+    <div class="rounding">Округление: +{{ cart.rounding | money }} ₽</div>
+    {% endif %}
+    <div class="grand-total">Итого: {{ cart.grand_total | money }} ₽</div>
+</div>
+
+<div class="actions">
+    <form class="inline-form" hx-post="/cashier/clear" hx-target="#cart" hx-swap="innerHTML">
+        <button type="submit" class="btn btn-clear">Очистить чек</button>
+    </form>
+</div>
+{% else %}
+<p class="cart-empty">Чек пуст. Добавьте товар по числовому коду.</p>
+{% endif %}

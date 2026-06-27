@@ -91,8 +91,8 @@ def test_price_history_created(db: Session):
     assert len(rows) == 1, "Должна быть ровно одна запись в price_history"
 
     ph = rows[0]
-    assert ph.price_buy == 5000, "50.00 ₴ = 5000 коп."
-    assert ph.price_sell == 9999, "99.99 ₴ = 9999 коп."
+    assert ph.price_buy == 5000, "50.00 ₽ = 5000 коп."
+    assert ph.price_sell == 9999, "99.99 ₽ = 9999 коп."
     assert ph.datetime is not None
     assert isinstance(ph.datetime, _dt.datetime)
     assert ph.datetime >= before
