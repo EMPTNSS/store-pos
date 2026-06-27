@@ -1,0 +1,77 @@
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+from typing import Annotated, Optional
+
+from pydantic import BaseModel, BeforeValidator, field_validator
+
+from app.models.product import UnitEnum
+
+
+def _parse_kopecks(v: object) -> int:
+    if isinstance(v, int):
+        return v
+    try:
+        d = Decimal(str(v).strip()).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return int(d * 100)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"Невалидное значение цены: {v!r}") from exc
+
+
+def _parse_decimal(v: object) -> Decimal:
+    if isinstance(v, Decimal):
+        return v
+    if v is None:
+        raise ValueError("Значение не может быть пустым")
+    try:
+        return Decimal(str(v).strip())
+    except InvalidOperation as exc:
+        raise ValueError(f"Невалидное число: {v!r}") from exc
+
+
+Kopecks = Annotated[int, BeforeValidator(_parse_kopecks)]
+PositiveDecimal = Annotated[Decimal, BeforeValidator(_parse_decimal)]
+
+
+class ProductCreate(BaseModel):
+    name: str
+    article: Optional[str] = None
+    price_buy: Kopecks
+    price_sell: Kopecks
+    quantity: PositiveDecimal
+    unit: UnitEnum
+    min_stock: PositiveDecimal = Decimal("0")
+    qr_code: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Название не может быть пустым")
+        return v.strip()
+
+    @field_validator("price_sell")
+    @classmethod
+    def price_sell_positive(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("Цена продажи должна быть больше 0")
+        return v
+
+    @field_validator("price_buy")
+    @classmethod
+    def price_buy_non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Цена закупки не может быть отрицательной")
+        return v
+
+    @field_validator("quantity")
+    @classmethod
+    def quantity_positive(cls, v: Decimal) -> Decimal:
+        if v <= Decimal("0"):
+            raise ValueError("Количество должно быть больше 0")
+        return v
+
+    @field_validator("min_stock")
+    @classmethod
+    def min_stock_non_negative(cls, v: Decimal) -> Decimal:
+        if v < Decimal("0"):
+            raise ValueError("Минимальный остаток не может быть отрицательным")
+        return v

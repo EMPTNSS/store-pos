@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Создать товар — POS{% endblock %}
+
+{% block content %}
+<h1>Создать товар</h1>
+
+{% if created_code %}
+<div class="success">
+    Товар сохранён. Числовой код: <strong>{{ created_code }}</strong>
+    &nbsp;·&nbsp; <a href="/products/new">Создать ещё</a>
+</div>
+{% endif %}
+
+{% if errors %}
+<div class="errors">
+    <ul>
+        {% for err in errors %}
+        <li>{{ err }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="post" action="/products">
+
+    <label for="name">Название товара <span class="required">*</span></label>
+    <input type="text" id="name" name="name" required
+           value="{{ values.get('name', '') }}" placeholder="Молоко 2.5%">
+
+    <label for="article">Артикул поставщика</label>
+    <input type="text" id="article" name="article"
+           value="{{ values.get('article', '') }}" placeholder="AB-12345">
+
+    <label for="price_buy">Цена закупки (₴) <span class="required">*</span></label>
+    <input type="text" id="price_buy" name="price_buy" required
+           value="{{ values.get('price_buy', '') }}" placeholder="45.00">
+    <span class="hint">В гривнах с копейками: 45.50 → система сохранит 4550 коп.</span>
+
+    <label for="price_sell">Цена продажи (₴) <span class="required">*</span></label>
+    <input type="text" id="price_sell" name="price_sell" required
+           value="{{ values.get('price_sell', '') }}" placeholder="69.90">
+
+    <label for="quantity">Начальное количество <span class="required">*</span></label>
+    <input type="text" id="quantity" name="quantity" required
+           value="{{ values.get('quantity', '') }}" placeholder="10">
+    <span class="hint">Целое или дробное (1.5 кг). Должно быть больше 0.</span>
+
+    <label for="unit">Единица измерения <span class="required">*</span></label>
+    <select id="unit" name="unit" required>
+        <option value="">— выберите —</option>
+        {% for u in units %}
+        <option value="{{ u.value }}"
+                {% if values.get('unit') == u.value %}selected{% endif %}>
+            {{ u.value }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <label for="min_stock">Минимальный остаток</label>
+    <input type="text" id="min_stock" name="min_stock"
+           value="{{ values.get('min_stock', '') }}" placeholder="0">
+    <span class="hint">По умолчанию 0 — без отслеживания порога пополнения.</span>
+
+    <label for="qr_code">QR / штрихкод (если есть)</label>
+    <input type="text" id="qr_code" name="qr_code"
+           value="{{ values.get('qr_code', '') }}" placeholder="4820000000000">
+
+    <div class="actions">
+        <button type="submit">Сохранить товар</button>
+    </div>
+
+</form>
+{% endblock %}
