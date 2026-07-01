@@ -150,11 +150,26 @@ class TestCashierRoutes:
         assert product.name in resp.text
         assert "Итого" in resp.text
 
+    def test_add_by_qr_code(self, db, client):
+        # сканер печатает QR-код в то же поле — товар должен найтись и добавиться
+        product = _make_product(db, qr_code="4600000012345")
+        resp = client.post("/cashier/items", data={"numeric_code": product.qr_code})
+        assert resp.status_code == 200
+        assert product.name in resp.text
+        assert "Итого" in resp.text
+
     def test_add_unknown_code_shows_message(self, db, client):
         resp = client.post("/cashier/items", data={"numeric_code": "999999"})
         assert resp.status_code == 200
         assert "не найден" in resp.text
         assert "Чек пуст" in resp.text  # корзина не пострадала
+
+    def test_add_same_product_by_scan_merges(self, db, client):
+        product = _make_product(db)
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+        resp = client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+        # объединение дублей: одна строка, количество 2 (механика 1.1)
+        assert resp.text.count("✕ убрать") == 1
 
     def test_cashier_does_not_touch_stock(self, db, client):
         product = _make_product(db)
@@ -168,3 +183,38 @@ class TestCashierRoutes:
         client.post("/cashier/items", data={"numeric_code": product.numeric_code})
         resp = client.post("/cashier/clear")
         assert "Чек пуст" in resp.text
+
+
+class TestCashierSearch:
+    def test_search_finds_by_name(self, db, client):
+        product = _make_product(db, name="Молоко 3.2%")
+        resp = client.get("/cashier/search", params={"q": "мол"})
+        assert resp.status_code == 200
+        assert product.name in resp.text
+        assert product.status.value in resp.text  # статус виден (разд. 3.4)
+
+    def test_search_empty_query_no_results(self, db, client):
+        _make_product(db, name="Молоко")
+        resp = client.get("/cashier/search", params={"q": ""})
+        assert resp.status_code == 200
+        assert "Молоко" not in resp.text
+        assert "Ничего не найдено" not in resp.text  # пустой запрос — не «не найдено»
+
+    def test_search_no_match_shows_message(self, db, client):
+        _make_product(db, name="Хлеб")
+        resp = client.get("/cashier/search", params={"q": "зонтик"})
+        assert "Ничего не найдено" in resp.text
+
+    def test_add_to_cart_from_search_result(self, db, client):
+        product = _make_product(db, name="Сыр")
+        resp = client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+        assert resp.status_code == 200
+        assert product.name in resp.text
+        assert "Итого" in resp.text
+
+    def test_search_does_not_touch_stock(self, db, client):
+        product = _make_product(db, name="Молоко")
+        before = product.quantity_current
+        client.get("/cashier/search", params={"q": "мол"})
+        db.refresh(product)
+        assert product.quantity_current == before

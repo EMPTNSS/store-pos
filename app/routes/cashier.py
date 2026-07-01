@@ -3,12 +3,14 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Request
 from pydantic import ValidationError
+from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models.product import Product
 from app.schemas.cart import CartQuantity
 from app.services.cart import get_cart
+from app.services.product_search import search_products
 
 # Отдельный экземпляр Jinja-окружения с фильтром форматирования денег.
 from fastapi.templating import Jinja2Templates
@@ -40,6 +42,21 @@ async def cashier_screen(request: Request):
     return _render(request, "cashier/index.html", _cart_context(request))
 
 
+@router.get("/cashier/search")
+async def search_items(
+    request: Request,
+    q: str = "",
+    session: Session = Depends(get_session),
+):
+    """Поиск товара для чека по названию/коду/артикулу (разд. 3)."""
+    results = search_products(session, q)
+    return _render(
+        request,
+        "cashier/_search_results.html",
+        {"results": results, "query": q.strip()},
+    )
+
+
 @router.post("/cashier/items")
 async def add_item(
     request: Request,
@@ -51,8 +68,11 @@ async def add_item(
     if not code:
         error = "Введите числовой код товара"
     else:
+        # Быстрый ввод/сканер: точное совпадение по числовому коду ИЛИ QR-коду.
         product = session.exec(
-            select(Product).where(Product.numeric_code == code)
+            select(Product).where(
+                or_(Product.numeric_code == code, Product.qr_code == code)
+            )
         ).first()
         if product is None:
             error = f"Товар с кодом {code} не найден"
