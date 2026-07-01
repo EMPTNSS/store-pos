@@ -9,8 +9,10 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.models.product import Product
 from app.schemas.cart import CartQuantity
+from app.schemas.sale import SaleComplete
 from app.services.cart import get_cart
 from app.services.product_search import search_products
+from app.services.sale import complete_sale
 
 # Отдельный экземпляр Jinja-окружения с фильтром форматирования денег.
 from fastapi.templating import Jinja2Templates
@@ -33,8 +35,12 @@ def _render(request: Request, name: str, context: dict, status_code: int = 200):
     return templates.TemplateResponse(request, name, context, status_code=status_code)
 
 
-def _cart_context(request: Request, error: Optional[str] = None) -> dict:
-    return {"cart": get_cart().view(), "error": error}
+def _cart_context(
+    request: Request,
+    error: Optional[str] = None,
+    sale_result: Optional[dict] = None,
+) -> dict:
+    return {"cart": get_cart().view(), "error": error, "sale_result": sale_result}
 
 
 @router.get("/cashier")
@@ -108,3 +114,31 @@ async def delete_item(request: Request, line_id: int):
 async def clear_cart(request: Request):
     get_cart().clear()
     return _render(request, "cashier/_cart.html", _cart_context(request))
+
+
+@router.post("/cashier/complete")
+async def complete(
+    request: Request,
+    payment_method: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    """Завершить продажу: сохранить чек, списать остаток, записать движения (1.3)."""
+    try:
+        data = SaleComplete(payment_method=payment_method)
+    except ValidationError:
+        error = "Выберите способ оплаты"
+        return _render(request, "cashier/_cart.html", _cart_context(request, error))
+
+    try:
+        receipt = complete_sale(session, get_cart(), data.payment_method)
+    except ValueError as exc:
+        return _render(request, "cashier/_cart.html", _cart_context(request, str(exc)))
+
+    sale_result = {
+        "number": receipt.receipt_number,
+        "total": receipt.total,
+        "payment_method": receipt.payment_method.value,
+    }
+    return _render(
+        request, "cashier/_cart.html", _cart_context(request, sale_result=sale_result)
+    )

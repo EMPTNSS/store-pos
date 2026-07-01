@@ -2,6 +2,14 @@
 <div class="errors"><ul><li>{{ error }}</li></ul></div>
 {% endif %}
 
+{% if sale_result %}
+<div class="sale-result">
+    Продажа завершена. Чек №{{ sale_result.number }},
+    оплата {{ sale_result.payment_method }},
+    итого {{ sale_result.total | money }} ₽.
+</div>
+{% endif %}
+
 {% if cart.lines %}
 <table class="cart-table">
     <thead>
@@ -46,6 +54,15 @@
     {% endif %}
     <div class="grand-total">Итого: {{ cart.grand_total | money }} ₽</div>
 </div>
+
+<form class="checkout" hx-post="/cashier/complete" hx-target="#cart" hx-swap="innerHTML">
+    <div class="payment">
+        <span>Способ оплаты:</span>
+        <label><input type="radio" name="payment_method" value="cash" checked> наличные</label>
+        <label><input type="radio" name="payment_method" value="card"> безналичные</label>
+    </div>
+    <button type="submit" class="btn btn-complete">Завершить продажу</button>
+</form>
 
 <div class="actions">
     <form class="inline-form" hx-post="/cashier/clear" hx-target="#cart" hx-swap="innerHTML">
