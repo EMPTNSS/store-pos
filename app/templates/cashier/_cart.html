@@ -10,6 +10,13 @@
     {% if not sale_result.printed %}
     <div class="print-warning">Чек не напечатан — проверьте принтер.</div>
     {% endif %}
+    {% if sale_result.invoice_requested %}
+        {% if sale_result.invoice_printed %}
+    <div class="invoice-note">Накладная сформирована.</div>
+        {% else %}
+    <div class="print-warning">Накладная не сформирована — проверьте устройство.</div>
+        {% endif %}
+    {% endif %}
 </div>
 {% endif %}
 
@@ -63,6 +70,9 @@
         <span>Способ оплаты:</span>
         <label><input type="radio" name="payment_method" value="cash" checked> наличные</label>
         <label><input type="radio" name="payment_method" value="card"> безналичные</label>
+    </div>
+    <div class="invoice-option">
+        <label><input type="checkbox" name="print_invoice" value="true"> Распечатать накладную</label>
     </div>
     <button type="submit" class="btn btn-complete">Завершить продажу</button>
 </form>

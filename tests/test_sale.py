@@ -23,11 +23,13 @@ def _reset_cart():
 
 @pytest.fixture(autouse=True)
 def _isolate_receipts(tmp_path, monkeypatch):
-    """Печать не пишет в реальный data/receipts/: по умолчанию бэкенд отключён."""
+    """Печать не пишет в реальные data/receipts/ и data/invoices/: бэкенды отключены."""
     from app.config import settings
 
     monkeypatch.setattr(settings, "receipts_dir", tmp_path / "receipts")
     monkeypatch.setattr(settings, "receipt_printer_backend", "null")
+    monkeypatch.setattr(settings, "invoices_dir", tmp_path / "invoices")
+    monkeypatch.setattr(settings, "invoice_printer_backend", "null")
     yield
 
 
@@ -293,3 +295,69 @@ class TestReceiptPrinting:
         assert resp.status_code == 200
         assert "Продажа завершена" in resp.text
         assert not (tmp_path / "out").exists()  # файлы не создавались
+
+
+# --- Накладная при продаже (этап 2.2) -------------------------------------
+
+class TestInvoicePrinting:
+    def test_invoice_created_when_requested(self, db, client, tmp_path, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "invoice_printer_backend", "file")
+        monkeypatch.setattr(settings, "invoices_dir", tmp_path / "inv")
+
+        product = _make_product(db, quantity="50")
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+
+        resp = client.post(
+            "/cashier/complete",
+            data={"payment_method": "cash", "print_invoice": "true"},
+        )
+        assert resp.status_code == 200
+        assert "Продажа завершена" in resp.text
+        assert "Накладная сформирована" in resp.text
+        assert "Чек пуст" in resp.text  # корзина очищена (регрессия 1.3/2.1)
+
+        receipt = db.exec(select(Receipt)).one()
+        assert (tmp_path / "inv" / f"накладная-{receipt.receipt_number:04d}.txt").exists()
+
+    def test_no_invoice_when_unchecked(self, db, client, tmp_path, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "invoice_printer_backend", "file")
+        monkeypatch.setattr(settings, "invoices_dir", tmp_path / "inv")
+
+        product = _make_product(db, quantity="50")
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+
+        # Галочка выключена — поле не приходит.
+        resp = client.post("/cashier/complete", data={"payment_method": "cash"})
+        assert resp.status_code == 200
+        assert "Продажа завершена" in resp.text
+        assert "Накладная" not in resp.text          # пометки о накладной нет
+        assert not (tmp_path / "inv").exists()        # файл не создавался
+
+        assert len(db.exec(select(Receipt)).all()) == 1  # продажа в норме
+
+    def test_invoice_failure_does_not_break_sale_or_receipt(self, db, client, monkeypatch):
+        from app.config import settings
+
+        # Чек печатается в файл (успех), а бэкенд накладной бросает — продажа обязана уцелеть.
+        monkeypatch.setattr(settings, "receipt_printer_backend", "null")
+        monkeypatch.setattr(settings, "invoice_printer_backend", "device")
+
+        product = _make_product(db, quantity="50")
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+
+        resp = client.post(
+            "/cashier/complete",
+            data={"payment_method": "cash", "print_invoice": "true"},
+        )
+        assert resp.status_code == 200
+        assert "Продажа завершена" in resp.text
+        assert "Накладная не сформирована" in resp.text  # пометка сбоя накладной
+        assert "Чек не напечатан" not in resp.text        # чек не задет
+
+        assert len(db.exec(select(Receipt)).all()) == 1   # чек сохранён
+        db.refresh(product)
+        assert product.quantity_current == Decimal("49")  # склад списан

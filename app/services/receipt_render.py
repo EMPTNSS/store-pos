@@ -9,11 +9,10 @@
 """
 
 import textwrap
-from decimal import Decimal
 
 from app.config import settings
 from app.models.receipt import Receipt, ReceiptLine
-from app.services.money import format_money
+from app.services.money import format_money, format_quantity
 
 
 def _center(text: str, width: int) -> str:
@@ -31,14 +30,6 @@ def _lr(left: str, right: str, width: int) -> str:
         left = left[: max(0, width - len(right) - 1)]
         gap = max(1, width - len(left) - len(right))
     return f"{left}{' ' * gap}{right}"
-
-
-def _format_quantity(quantity: Decimal) -> str:
-    """Количество без лишних нулей: 2 (шт), 1.5 (кг), 10 (шт)."""
-    text = format(quantity, "f")  # фиксированная точка, без экспоненты (10, а не 1E+1)
-    if "." in text:
-        text = text.rstrip("0").rstrip(".")
-    return text
 
 
 def render_receipt_text(
@@ -61,7 +52,7 @@ def render_receipt_text(
     for line in lines:
         for name_line in textwrap.wrap(line.name, width) or [""]:
             out.append(name_line)
-        qty = _format_quantity(line.quantity)
+        qty = format_quantity(line.quantity)
         left = f"  {qty} {line.unit.value} x {format_money(line.price_sell)}"
         out.append(_lr(left, format_money(line.total), width))
 

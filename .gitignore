@@ -7,4 +7,5 @@ data/*.db
 data/*.db-wal
 data/*.db-shm
 data/receipts/
+data/invoices/
 .pytest_cache/

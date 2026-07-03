@@ -8,12 +8,14 @@ from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from app.database import get_session
+from app.hardware.invoice_printer import get_invoice_printer
 from app.hardware.receipt_printer import get_receipt_printer
 from app.models.product import Product
 from app.models.receipt import Receipt, ReceiptLine
 from app.schemas.cart import CartQuantity
 from app.schemas.sale import SaleComplete
 from app.services.cart import get_cart
+from app.services.invoice_render import render_invoice_text
 from app.services.money import format_money
 from app.services.product_search import search_products
 from app.services.receipt_render import render_receipt_text
@@ -47,6 +49,24 @@ def _print_receipt(session: Session, receipt: Receipt) -> bool:
         get_receipt_printer().print(receipt.receipt_number, text)
     except Exception:  # noqa: BLE001 — продажа уже зафиксирована, печать вторична
         log.exception("Печать чека №%s не удалась", receipt.receipt_number)
+        return False
+    return True
+
+
+def _print_invoice(session: Session, receipt: Receipt) -> bool:
+    """Best-effort формирование накладной из сохранённого чека (макет 1.4, 18.5).
+
+    Независимо от печати чека: свой ``try/except``. Сбой не откатывает продажу и не
+    мешает печати чека. Возвращает True, если накладная сформирована без ошибки.
+    """
+    try:
+        lines = session.exec(
+            select(ReceiptLine).where(ReceiptLine.receipt_id == receipt.id)
+        ).all()
+        text = render_invoice_text(receipt, list(lines))
+        get_invoice_printer().print(receipt.receipt_number, text)
+    except Exception:  # noqa: BLE001 — продажа уже зафиксирована, накладная вторична
+        log.exception("Формирование накладной чека №%s не удалось", receipt.receipt_number)
         return False
     return True
 
@@ -140,11 +160,12 @@ async def clear_cart(request: Request):
 async def complete(
     request: Request,
     payment_method: str = Form(...),
+    print_invoice: bool = Form(False),
     session: Session = Depends(get_session),
 ):
     """Завершить продажу: сохранить чек, списать остаток, записать движения (1.3)."""
     try:
-        data = SaleComplete(payment_method=payment_method)
+        data = SaleComplete(payment_method=payment_method, print_invoice=print_invoice)
     except ValidationError:
         error = "Выберите способ оплаты"
         return _render(request, "cashier/_cart.html", _cart_context(request, error))
@@ -157,11 +178,18 @@ async def complete(
     # Продажа зафиксирована — печатаем чек (best-effort, сбой не откатывает продажу).
     printed = _print_receipt(session, receipt)
 
+    # Накладная — опционально и после чека (макет 1.4), независимый best-effort шаг.
+    invoice_printed = None
+    if data.print_invoice:
+        invoice_printed = _print_invoice(session, receipt)
+
     sale_result = {
         "number": receipt.receipt_number,
         "total": receipt.total,
         "payment_method": receipt.payment_method.value,
         "printed": printed,
+        "invoice_requested": data.print_invoice,
+        "invoice_printed": invoice_printed,
     }
     return _render(
         request, "cashier/_cart.html", _cart_context(request, sale_result=sale_result)

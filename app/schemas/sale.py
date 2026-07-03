@@ -11,6 +11,8 @@ class SaleComplete(BaseModel):
     """
 
     payment_method: PaymentMethod
+    # Галочка «Распечатать накладную» (макет 1.4). Накладная — опциональна.
+    print_invoice: bool = False
 
     @field_validator("payment_method", mode="before")
     @classmethod

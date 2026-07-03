@@ -15,6 +15,18 @@ def format_money(kopecks: int) -> str:
     return f"{kopecks / KOPECKS_PER_UNIT:.2f}"
 
 
+def format_quantity(quantity: Decimal) -> str:
+    """Количество без лишних нулей: 2 (шт), 1.5 (кг), 10 (шт).
+
+    Единый формат количества для печати чека и накладной. Фиксированная точка,
+    без экспоненты (10, а не 1E+1); дробную часть без значащих нулей отбрасываем.
+    """
+    text = format(quantity, "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text
+
+
 def line_total(price_kopecks: int, quantity: Decimal) -> int:
     """Сумма строки чека = цена × количество, округлённая до целой копейки.
 
