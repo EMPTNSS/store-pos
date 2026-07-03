@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     invoice_line_width: int = 80             # учётный документ, шире чековой ленты
     invoice_title: str = "НАКЛАДНАЯ"         # заголовок документа (макет 18.6/18.7)
 
+    # --- Экран покупателя (этап 2.3) -------------------------------------
+    # Второе окно pywebview открывается в run.py только при customer_display_window.
+    # Экран обновляется HTMX-опросом; после оплаты N секунд показывает благодарность.
+    customer_display_window: bool = False        # открывать ли 2-е окно (по умолчанию нет)
+    customer_display_poll_ms: int = 1000         # интервал HTMX-опроса состояния
+    customer_display_thanks_seconds: int = 8     # сколько показывать «Спасибо за покупку»
+    customer_display_welcome: str = "Добро пожаловать"      # экран ожидания
+    customer_display_thanks_text: str = "Спасибо за покупку"  # после оплаты (макет 20.4)
+
     @property
     def database_url(self) -> str:
         return f"sqlite:///{self.db_path}"

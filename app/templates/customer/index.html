@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Экран покупателя</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            min-height: 100vh;
+        }
+        #display { flex: 1; display: flex; }
+
+        /* Продажа: крупный список строк + очень крупный итог (макет 20.2, 20.3). */
+        .cd-wrap { flex: 1; display: flex; flex-direction: column; padding: 4vh 5vw; }
+        .cd-items { width: 100%; border-collapse: collapse; font-size: 2.4rem; }
+        .cd-items td { padding: 1.2vh 0; border-bottom: 1px solid #1e293b; vertical-align: top; }
+        .cd-name { font-weight: 600; }
+        .cd-meta { color: #94a3b8; font-size: 1.6rem; margin-top: 0.4vh; }
+        .cd-sum { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .cd-total {
+            margin-top: auto; padding-top: 3vh; text-align: right;
+            font-size: 4.5rem; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+
+        /* Благодарность / ожидание — по центру, максимально крупно. */
+        .cd-center {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center; padding: 5vw;
+        }
+        .cd-thanks { font-size: 6rem; font-weight: 800; }
+        .cd-thanks-sum { margin-top: 2vh; font-size: 2.2rem; color: #94a3b8; }
+        .cd-welcome { font-size: 5rem; font-weight: 700; color: #cbd5e1; }
+    </style>
+</head>
+<body>
+    <!-- Опрос состояния каждые poll_ms: чистый HTMX, без JS-фреймворков (CLAUDE.md). -->
+    <div id="display"
+         hx-get="/customer/state"
+         hx-trigger="load, every {{ poll_ms }}ms"
+         hx-swap="innerHTML">
+        {% include "customer/_display.html" %}
+    </div>
+</body>
+</html>

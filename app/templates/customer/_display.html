@@ -1,0 +1,32 @@
+{% if state.kind == "sale" %}
+{# Живой чек: товары, количество, цена, сумма и крупный итог (макет 20.2). #}
+<div class="cd-wrap">
+    <table class="cd-items">
+        <tbody>
+        {% for line in state.cart.lines %}
+            <tr>
+                <td>
+                    <div class="cd-name">{{ line.name }}</div>
+                    <div class="cd-meta">{{ line.quantity | quantity }} {{ line.unit.value }} × {{ line.price_sell | money }} ₽</div>
+                </td>
+                <td class="cd-sum">{{ line.total | money }} ₽</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div class="cd-total">Итого: {{ state.cart.grand_total | money }} ₽</div>
+</div>
+{% elif state.kind == "thanks" %}
+{# После оплаты — «Спасибо за покупку» (макет 20.4). #}
+<div class="cd-center">
+    <div class="cd-thanks">{{ thanks_text }}</div>
+    {% if state.sale %}
+    <div class="cd-thanks-sum">Чек №{{ state.sale.number }} · {{ state.sale.total | money }} ₽</div>
+    {% endif %}
+</div>
+{% else %}
+{# Ожидание следующего покупателя. #}
+<div class="cd-center">
+    <div class="cd-welcome">{{ welcome }}</div>
+</div>
+{% endif %}

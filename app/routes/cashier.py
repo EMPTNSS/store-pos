@@ -15,6 +15,7 @@ from app.models.receipt import Receipt, ReceiptLine
 from app.schemas.cart import CartQuantity
 from app.schemas.sale import SaleComplete
 from app.services.cart import get_cart
+from app.services.customer_display import mark_sale_completed
 from app.services.invoice_render import render_invoice_text
 from app.services.money import format_money
 from app.services.product_search import search_products
@@ -174,6 +175,14 @@ async def complete(
         receipt = complete_sale(session, get_cart(), data.payment_method)
     except ValueError as exc:
         return _render(request, "cashier/_cart.html", _cart_context(request, str(exc)))
+
+    # Отметить продажу для экрана покупателя (2.3): благодарность после очистки корзины.
+    # Best-effort и вне транзакции — продажа уже зафиксирована, экран вторичен.
+    try:
+        mark_sale_completed(receipt)
+    except Exception:  # noqa: BLE001 — экран покупателя не должен ломать продажу
+        log.exception("Не удалось отметить продажу №%s для экрана покупателя",
+                      receipt.receipt_number)
 
     # Продажа зафиксирована — печатаем чек (best-effort, сбой не откатывает продажу).
     printed = _print_receipt(session, receipt)
