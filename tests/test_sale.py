@@ -21,6 +21,16 @@ def _reset_cart():
     get_cart().clear()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_receipts(tmp_path, monkeypatch):
+    """Печать не пишет в реальный data/receipts/: по умолчанию бэкенд отключён."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "receipts_dir", tmp_path / "receipts")
+    monkeypatch.setattr(settings, "receipt_printer_backend", "null")
+    yield
+
+
 def _make_product(db, **overrides):
     data = dict(
         name="Хлеб", price_buy="10.00", price_sell="20.00",
@@ -230,3 +240,56 @@ class TestCompleteRoute:
         assert db.exec(select(Receipt)).all() == []
         # корзина цела: строка на месте
         assert product.name in resp.text
+
+
+# --- Печать чека при продаже (этап 2.1) -----------------------------------
+
+class TestReceiptPrinting:
+    def test_sale_prints_receipt_file(self, db, client, tmp_path, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "receipt_printer_backend", "file")
+        monkeypatch.setattr(settings, "receipts_dir", tmp_path / "out")
+
+        product = _make_product(db, quantity="50")
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+
+        resp = client.post("/cashier/complete", data={"payment_method": "cash"})
+        assert resp.status_code == 200
+        assert "Продажа завершена" in resp.text
+        assert "Чек не напечатан" not in resp.text
+
+        receipt = db.exec(select(Receipt)).one()
+        assert (tmp_path / "out" / f"чек-{receipt.receipt_number:04d}.txt").exists()
+
+    def test_print_failure_does_not_break_sale(self, db, client, monkeypatch):
+        from app.config import settings
+
+        # Бэкенд device в 2.1 не настроен → print бросает; продажа обязана уцелеть.
+        monkeypatch.setattr(settings, "receipt_printer_backend", "device")
+
+        product = _make_product(db, quantity="50")
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+
+        resp = client.post("/cashier/complete", data={"payment_method": "cash"})
+        assert resp.status_code == 200
+        assert "Продажа завершена" in resp.text
+        assert "Чек не напечатан" in resp.text  # пометка сбоя печати
+
+        assert len(db.exec(select(Receipt)).all()) == 1  # чек сохранён
+        db.refresh(product)
+        assert product.quantity_current == Decimal("49")  # склад списан
+
+    def test_null_backend_prints_nothing(self, db, client, tmp_path, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "receipt_printer_backend", "null")
+        monkeypatch.setattr(settings, "receipts_dir", tmp_path / "out")
+
+        product = _make_product(db, quantity="50")
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+
+        resp = client.post("/cashier/complete", data={"payment_method": "cash"})
+        assert resp.status_code == 200
+        assert "Продажа завершена" in resp.text
+        assert not (tmp_path / "out").exists()  # файлы не создавались

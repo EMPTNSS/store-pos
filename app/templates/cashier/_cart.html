@@ -7,6 +7,9 @@
     Продажа завершена. Чек №{{ sale_result.number }},
     оплата {{ sale_result.payment_method }},
     итого {{ sale_result.total | money }} ₽.
+    {% if not sale_result.printed %}
+    <div class="print-warning">Чек не напечатан — проверьте принтер.</div>
+    {% endif %}
 </div>
 {% endif %}
 

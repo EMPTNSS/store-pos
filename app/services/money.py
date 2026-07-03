@@ -6,6 +6,15 @@ from decimal import Decimal, ROUND_HALF_UP
 KOPECKS_PER_UNIT = 100
 
 
+def format_money(kopecks: int) -> str:
+    """Копейки → строка вида '148.50' для отображения и печати.
+
+    Единый формат денег для интерфейса (Jinja-фильтр `money`) и печати чека,
+    чтобы вид суммы был один во всей системе.
+    """
+    return f"{kopecks / KOPECKS_PER_UNIT:.2f}"
+
+
 def line_total(price_kopecks: int, quantity: Decimal) -> int:
     """Сумма строки чека = цена × количество, округлённая до целой копейки.
 

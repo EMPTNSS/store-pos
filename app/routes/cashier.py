@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -7,28 +8,47 @@ from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from app.database import get_session
+from app.hardware.receipt_printer import get_receipt_printer
 from app.models.product import Product
+from app.models.receipt import Receipt, ReceiptLine
 from app.schemas.cart import CartQuantity
 from app.schemas.sale import SaleComplete
 from app.services.cart import get_cart
+from app.services.money import format_money
 from app.services.product_search import search_products
+from app.services.receipt_render import render_receipt_text
 from app.services.sale import complete_sale
 
 # Отдельный экземпляр Jinja-окружения с фильтром форматирования денег.
 from fastapi.templating import Jinja2Templates
+
+log = logging.getLogger(__name__)
 
 router = APIRouter()
 
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
-
-def _format_money(kopecks: int) -> str:
-    """Копейки → строка вида '148.50' для отображения."""
-    return f"{kopecks / 100:.2f}"
+# Единый формат денег для интерфейса и печати (см. app/services/money.py).
+templates.env.filters["money"] = format_money
 
 
-templates.env.filters["money"] = _format_money
+def _print_receipt(session: Session, receipt: Receipt) -> bool:
+    """Best-effort печать сохранённого чека. Сбой не откатывает продажу.
+
+    Печатаем снимок из БД (``ReceiptLine``), а не корзину — она уже очищена.
+    Возвращает True, если печать прошла без ошибки.
+    """
+    try:
+        lines = session.exec(
+            select(ReceiptLine).where(ReceiptLine.receipt_id == receipt.id)
+        ).all()
+        text = render_receipt_text(receipt, list(lines))
+        get_receipt_printer().print(receipt.receipt_number, text)
+    except Exception:  # noqa: BLE001 — продажа уже зафиксирована, печать вторична
+        log.exception("Печать чека №%s не удалась", receipt.receipt_number)
+        return False
+    return True
 
 
 def _render(request: Request, name: str, context: dict, status_code: int = 200):
@@ -134,10 +154,14 @@ async def complete(
     except ValueError as exc:
         return _render(request, "cashier/_cart.html", _cart_context(request, str(exc)))
 
+    # Продажа зафиксирована — печатаем чек (best-effort, сбой не откатывает продажу).
+    printed = _print_receipt(session, receipt)
+
     sale_result = {
         "number": receipt.receipt_number,
         "total": receipt.total,
         "payment_method": receipt.payment_method.value,
+        "printed": printed,
     }
     return _render(
         request, "cashier/_cart.html", _cart_context(request, sale_result=sale_result)

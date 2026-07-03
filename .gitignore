@@ -6,4 +6,5 @@ venv/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+data/receipts/
 .pytest_cache/

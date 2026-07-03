@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
 
+    # --- Печать чека (этап 2.1) ------------------------------------------
+    # Бэкенд транспорта печати: "file" (по умолчанию — пишет чек в файл),
+    # "device" (реальный ESC/POS-принтер, включается с железом), "null" (без печати).
+    receipt_printer_backend: str = "file"
+    receipts_dir: Path = Path("data/receipts")
+    receipt_line_width: int = 48  # 80 мм, Шрифт A: 576 точек / 12 = 48 символов
+    receipt_header: str = "МАГАЗИН"          # блок магазина / рекламный блок (макет 18.4)
+    receipt_footer: str = "Спасибо за покупку!"
+
     @property
     def database_url(self) -> str:
         return f"sqlite:///{self.db_path}"
