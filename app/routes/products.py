@@ -12,6 +12,7 @@ from app.database import get_session
 from app.models.product import UnitEnum
 from app.schemas.product import ProductCreate
 from app.services.product_service import create_product
+from app.services.supplier_service import list_active_suppliers
 
 router = APIRouter()
 
@@ -24,14 +25,21 @@ def _render(request: Request, name: str, context: dict, status_code: int = 200):
 
 
 @router.get("/products/new")
-async def new_product_form(request: Request):
+async def new_product_form(request: Request, session: Session = Depends(get_session)):
     created = request.query_params.get("created")
     return _render(request, "products/new.html", {
         "units": list(UnitEnum),
+        "suppliers": list_active_suppliers(session),
         "errors": [],
         "values": {},
         "created_code": created,
     })
+
+
+@router.get("/products/supplier-row")
+async def supplier_row(request: Request):
+    """Пустой ряд выбора поставщика — добавляется на форму по HTMX (hx-swap beforeend)."""
+    return _render(request, "products/_supplier_row.html", {"value": ""})
 
 
 @router.post("/products")
@@ -45,8 +53,11 @@ async def create_product_route(
     article: Optional[str] = Form(None),
     min_stock: Optional[str] = Form(None),
     qr_code: Optional[str] = Form(None),
+    supplier: list[str] = Form(default=[]),
     session: Session = Depends(get_session),
 ):
+    # Непустые имена поставщиков — для передачи в схему и перерисовки рядов при ошибке.
+    supplier_names = [s.strip() for s in supplier if s and s.strip()]
     values = {
         "name": name,
         "price_buy": price_buy,
@@ -56,6 +67,7 @@ async def create_product_route(
         "article": article or "",
         "min_stock": min_stock or "",
         "qr_code": qr_code or "",
+        "supplier_names": supplier_names,
     }
 
     article_clean = (article or "").strip() or None
@@ -72,11 +84,13 @@ async def create_product_route(
             article=article_clean,
             min_stock=min_stock_clean,
             qr_code=qr_code_clean,
+            supplier_names=supplier_names,
         )
     except ValidationError as exc:
         errors = [err["msg"].removeprefix("Value error, ") for err in exc.errors()]
         return _render(request, "products/new.html", {
             "units": list(UnitEnum),
+            "suppliers": list_active_suppliers(session),
             "errors": errors,
             "values": values,
             "created_code": None,
@@ -88,6 +102,7 @@ async def create_product_route(
         session.rollback()
         return _render(request, "products/new.html", {
             "units": list(UnitEnum),
+            "suppliers": list_active_suppliers(session),
             "errors": ["QR-код уже используется другим товаром"],
             "values": values,
             "created_code": None,

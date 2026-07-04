@@ -3,6 +3,19 @@
 {% block title %}Создать товар — POS{% endblock %}
 
 {% block content %}
+<style>
+    .supplier-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .supplier-row input { margin-top: 0; }
+    .remove-supplier {
+        flex: 0 0 auto; width: 36px; padding: 8px 0; background: #f3f3f3;
+        border: 1px solid #ccc; border-radius: 4px; color: #c0392b; font-size: 1.1rem;
+        line-height: 1; cursor: pointer;
+    }
+    .btn-add-supplier {
+        margin-top: 10px; padding: 8px 16px; background: none; border: 1px dashed #4a90e2;
+        border-radius: 4px; color: #2563eb; font-size: 0.95rem; cursor: pointer;
+    }
+</style>
 <h1>Создать товар</h1>
 
 {% if created_code %}
@@ -65,6 +78,31 @@
     <label for="qr_code">QR / штрихкод (если есть)</label>
     <input type="text" id="qr_code" name="qr_code"
            value="{{ values.get('qr_code', '') }}" placeholder="4820000000000">
+
+    <label>Поставщики</label>
+    <span class="hint">Необязательно. Выберите из списка или впишите нового —
+        он создастся при сохранении. Можно добавить несколько.</span>
+
+    <datalist id="suppliers-datalist">
+        {% for s in suppliers %}
+        <option value="{{ s.name }}"></option>
+        {% endfor %}
+    </datalist>
+
+    <div id="supplier-rows">
+        {% for supplier_name in values.get('supplier_names', []) %}
+        {% set value = supplier_name %}
+        {% include "products/_supplier_row.html" %}
+        {% else %}
+        {% include "products/_supplier_row.html" %}
+        {% endfor %}
+    </div>
+
+    <button type="button" class="btn-add-supplier"
+            hx-get="/products/supplier-row"
+            hx-target="#supplier-rows" hx-swap="beforeend">
+        + добавить поставщика
+    </button>
 
     <div class="actions">
         <button type="submit">Сохранить товар</button>

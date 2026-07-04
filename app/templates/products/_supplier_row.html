@@ -1,0 +1,8 @@
+<div class="supplier-row">
+    <input type="text" name="supplier" list="suppliers-datalist" autocomplete="off"
+           placeholder="Начните вводить или выберите из списка"
+           value="{{ value | default('') }}">
+    <button type="button" class="remove-supplier"
+            onclick="this.closest('.supplier-row').remove()"
+            aria-label="Убрать поставщика">×</button>
+</div>

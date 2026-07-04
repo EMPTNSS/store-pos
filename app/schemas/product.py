@@ -40,6 +40,14 @@ class ProductCreate(BaseModel):
     unit: UnitEnum
     min_stock: PositiveDecimal = Decimal("0")
     qr_code: Optional[str] = None
+    # Имена поставщиков из формы (0, 1 или несколько). Дедуп/создание — в сервисе.
+    supplier_names: list[str] = []
+
+    @field_validator("supplier_names")
+    @classmethod
+    def clean_supplier_names(cls, v: list[str]) -> list[str]:
+        # Обрезать пробелы и выбросить пустые строки (пустые ряды формы игнорируются).
+        return [s.strip() for s in v if s and s.strip()]
 
     @field_validator("name")
     @classmethod

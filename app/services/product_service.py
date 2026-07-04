@@ -6,7 +6,9 @@ from app.models.counter import ProductCodeCounter
 from app.models.movement import Movement, OperationType
 from app.models.price_history import PriceHistory
 from app.models.product import Product, ProductStatus
+from app.models.supplier import ProductSupplierLink
 from app.schemas.product import ProductCreate
+from app.services.supplier_service import resolve_suppliers
 
 
 def create_product(data: ProductCreate, session: Session) -> Product:
@@ -56,6 +58,13 @@ def create_product(data: ProductCreate, session: Session) -> Product:
         price_sell=data.price_sell,
     )
     session.add(price_history)
+
+    # 5. Разрешить поставщиков (реюз/инлайн-создание) и связать с товаром.
+    #    Всё в этой же транзакции — атомарность создания товара сохраняется.
+    for supplier in resolve_suppliers(data.supplier_names, session):
+        session.add(
+            ProductSupplierLink(product_id=product.id, supplier_id=supplier.id)
+        )
 
     session.commit()
     session.refresh(product)
