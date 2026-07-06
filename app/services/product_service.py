@@ -8,8 +8,10 @@ from app.models.counter import ProductCodeCounter
 from app.models.movement import Movement, OperationType
 from app.models.price_history import PriceHistory
 from app.models.product import Product, ProductStatus
+from app.models.receipt import Receipt, ReceiptLine
 from app.models.supplier import ProductSupplierLink, Supplier
 from app.schemas.product import ProductCreate, ProductEdit
+from app.services.money import line_total
 from app.services.supplier_service import resolve_suppliers
 
 
@@ -189,3 +191,89 @@ def adjust_quantity(
     session.commit()
     session.refresh(product)
     return product
+
+
+# ── История движений и статистика (этап 3.2, макет 5.7/5.4) ──────────────────
+# Только чтение: количество берём из movement, деньги (прибыль) — из receipt_line
+# + price_history (себестоимость на момент продажи). Хранилище не меняется.
+
+
+def product_movements(session: Session, product_id: int) -> list[Movement]:
+    """Все движения товара, от новых к старым — окно истории (макет 5.7).
+
+    Вторичная сортировка по id разводит движения одной секунды (например несколько
+    строк одного чека), чтобы порядок был устойчивым.
+    """
+    return session.exec(
+        select(Movement)
+        .where(Movement.product_id == product_id)
+        .order_by(Movement.datetime.desc(), Movement.id.desc())
+    ).all()
+
+
+def buy_price_asof(session: Session, product_id: int, at: _dt.datetime) -> int:
+    """Закупочная цена (копейки), действовавшая на момент ``at``.
+
+    Последняя точка price_history с ``datetime <= at``. Если точек нет (не должно —
+    первая пишется при создании товара) → fallback на текущую price_buy.
+    """
+    point = session.exec(
+        select(PriceHistory)
+        .where(
+            PriceHistory.product_id == product_id,
+            PriceHistory.datetime <= at,
+        )
+        .order_by(PriceHistory.datetime.desc(), PriceHistory.id.desc())
+    ).first()
+    if point is not None:
+        return point.price_buy
+    product = session.get(Product, product_id)
+    return product.price_buy if product is not None else 0
+
+
+def product_stats(session: Session, product_id: int) -> dict:
+    """Статистика товара (макет 5.4): продано всего, движение по датам, чистая прибыль.
+
+    - ``sold_total`` — Σ |quantity| по движениям типа «продажа».
+    - ``by_date`` — движения, сгруппированные по дате: income (Σ положительных дельт,
+      «прибыло») и outgoing (Σ модулей отрицательных, «убыло»); от новых дат к старым.
+    - ``net_profit`` — выручка (receipt_line.total) минус себестоимость по закупочной
+      цене на момент каждой продажи (buy_price_asof), в копейках. Только по продажам;
+      недостача/излишек деньгами не оцениваются.
+    """
+    movements = session.exec(
+        select(Movement).where(Movement.product_id == product_id)
+    ).all()
+
+    sold_total = sum(
+        (-m.quantity for m in movements if m.operation_type == OperationType.sale),
+        Decimal("0"),
+    )
+
+    buckets: dict[_dt.date, dict] = {}
+    for m in movements:
+        day = m.datetime.date()
+        bucket = buckets.setdefault(
+            day, {"income": Decimal("0"), "outgoing": Decimal("0")}
+        )
+        if m.quantity >= 0:
+            bucket["income"] += m.quantity
+        else:
+            bucket["outgoing"] += -m.quantity
+    by_date = [
+        {"date": day, "income": b["income"], "outgoing": b["outgoing"]}
+        for day, b in sorted(buckets.items(), reverse=True)
+    ]
+
+    # Чистая прибыль: выручка − себестоимость as-of по строкам чеков товара.
+    rows = session.exec(
+        select(ReceiptLine.quantity, ReceiptLine.total, Receipt.datetime)
+        .join(Receipt, ReceiptLine.receipt_id == Receipt.id)
+        .where(ReceiptLine.product_id == product_id)
+    ).all()
+    net_profit = 0
+    for quantity, total, sold_at in rows:
+        cost = line_total(buy_price_asof(session, product_id, sold_at), quantity)
+        net_profit += total - cost
+
+    return {"sold_total": sold_total, "by_date": by_date, "net_profit": net_profit}

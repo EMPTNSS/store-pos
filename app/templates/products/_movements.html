@@ -1,0 +1,73 @@
+<!-- Секция истории движений (5.7) + статистики (5.4) карточки товара (этап 3.2).
+     Ленивая подгрузка в #product-movements (hx-trigger="load"). Только чтение:
+     количество — из movement, чистая прибыль — из receipt_line + price_history. -->
+<div class="movements">
+<style>
+    .movements h2 { margin-top: 28px; font-size: 1.1rem; border-top: 1px solid #eee;
+        padding-top: 16px; }
+    .movements .stat-grid { display: flex; gap: 24px; flex-wrap: wrap; margin: 12px 0 4px; }
+    .movements .stat { flex: 1 1 160px; }
+    .movements .stat .label { color: #666; font-size: 0.85rem; }
+    .movements .stat .value { font-size: 1.3rem; font-weight: 600; }
+    .movements table { width: 100%; border-collapse: collapse; margin-top: 12px;
+        font-size: 0.92rem; }
+    .movements th, .movements td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0;
+        text-align: left; }
+    .movements th { color: #666; font-weight: 600; font-size: 0.82rem; }
+    .movements th.num, .movements td.num { text-align: right; }
+    .movements td.pos { color: #1a7f37; }
+    .movements td.neg { color: #c0392b; }
+    .movements .muted { color: #999; }
+</style>
+
+    <h2>Статистика</h2>
+    <div class="stat-grid">
+        <div class="stat">
+            <div class="label">Продано за всё время</div>
+            <div class="value">{{ stats.sold_total | quantity }} {{ product.unit.value }}</div>
+        </div>
+        <div class="stat">
+            <div class="label">Чистая прибыль</div>
+            <div class="value">{{ stats.net_profit | money }} ₽</div>
+        </div>
+    </div>
+
+    {% if stats.by_date %}
+    <table>
+        <thead>
+            <tr><th>Дата</th><th class="num">Прибыло</th><th class="num">Убыло</th></tr>
+        </thead>
+        <tbody>
+        {% for row in stats.by_date %}
+            <tr>
+                <td>{{ row.date.strftime("%d.%m.%Y") }}</td>
+                <td class="num">{% if row.income %}+{{ row.income | quantity }}{% else %}<span class="muted">—</span>{% endif %}</td>
+                <td class="num">{% if row.outgoing %}−{{ row.outgoing | quantity }}{% else %}<span class="muted">—</span>{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <h2>История движений</h2>
+    {% if movements %}
+    <table>
+        <thead>
+            <tr><th>Дата</th><th>Операция</th><th class="num">Количество</th></tr>
+        </thead>
+        <tbody>
+        {% for m in movements %}
+            <tr>
+                <td>{{ m.datetime.strftime("%d.%m.%Y") }}</td>
+                <td>{{ m.operation_type.value }}</td>
+                <td class="num {% if m.quantity >= 0 %}pos{% else %}neg{% endif %}">
+                    {% if m.quantity >= 0 %}+{% endif %}{{ m.quantity | quantity }} {{ product.unit.value }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Движений по товару пока нет.</p>
+    {% endif %}
+</div>

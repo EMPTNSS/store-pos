@@ -17,6 +17,8 @@ from app.services.product_service import (
     adjust_quantity,
     create_product,
     get_product,
+    product_movements,
+    product_stats,
     product_view,
     update_product,
 )
@@ -242,4 +244,25 @@ async def adjust_quantity_route(
     updated = adjust_quantity(session, product_id, data.quantity)
     return _render(
         request, "products/_card.html", _card_context(session, updated, saved=True)
+    )
+
+
+@router.get("/products/{product_id}/movements")
+async def product_movements_section(
+    request: Request,
+    product_id: int,
+    session: Session = Depends(get_session),
+):
+    """История движений (5.7) + статистика (5.4). Ленивая подгрузка секции карточки."""
+    product = get_product(session, product_id)
+    if product is None:
+        return HTMLResponse("Товар не найден", status_code=404)
+    return _render(
+        request,
+        "products/_movements.html",
+        {
+            "product": product,
+            "movements": product_movements(session, product_id),
+            "stats": product_stats(session, product_id),
+        },
     )
