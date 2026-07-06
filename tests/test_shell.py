@@ -60,9 +60,19 @@ class TestSectionPanels:
             assert "add-test-field" not in resp.text
 
     def test_panels_are_stubs(self, client):
-        # Разделы — заглушки без наполнения (приходит на своих этапах).
+        # Разделы без наполнения — заглушки (приходят на своих этапах). «Товары»
+        # наполнены с этапа 3.1 (реальный поиск для карточки), поэтому исключены.
         for key in SECTIONS:
+            if key == "products":
+                continue
             assert "в разработке" in client.get(f"/panels/{key}").text
+
+    def test_products_panel_is_real_search(self, client):
+        # «Товары» — реальная панель поиска для карточки (этап 3.1), не заглушка.
+        resp = client.get("/panels/products")
+        assert resp.status_code == 200
+        assert "в разработке" not in resp.text
+        assert "Поиск товара для карточки" in resp.text
 
     def test_unknown_panel_404(self, client):
         # Ключ не из белого списка — 404, произвольные панели не открываем.

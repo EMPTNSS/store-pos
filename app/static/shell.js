@@ -86,6 +86,51 @@
         if (wasActive) activate("cashier"); // касса — всегда доступный запасной вариант
     }
 
+    // Карточка товара (этап 3.1): одна вкладка «Карточка» с подменой товара внутри
+    // (roadmap 2.5) — не по вкладке на товар. Открытие другого товара заменяет содержимое.
+    function openCard(productId) {
+        var url = "/products/" + productId + "/card";
+        var panel = panelEl("card");
+        if (!open.card) {
+            open.card = true;
+
+            var tab = document.createElement("div");
+            tab.className = "tab";
+            tab.setAttribute("data-key", "card");
+            tab.appendChild(document.createTextNode("Карточка "));
+
+            var close = document.createElement("button");
+            close.className = "close";
+            close.type = "button";
+            close.title = "Закрыть вкладку";
+            close.textContent = "×"; // ×
+            close.addEventListener("click", function (e) {
+                e.stopPropagation();
+                closeSection("card");
+            });
+            tab.appendChild(close);
+            tab.addEventListener("click", function () {
+                activate("card");
+            });
+            tabs.appendChild(tab);
+
+            panel = document.createElement("section");
+            panel.className = "panel";
+            panel.id = "panel-card";
+            panels.appendChild(panel);
+        }
+        // Загрузить/подменить карточку выбранного товара в ту же панель.
+        window.htmx.ajax("GET", url, { target: panel, swap: "innerHTML" });
+        activate("card");
+    }
+
+    // Делегирование: клик по «Открыть карточку» в результатах поиска раздела «Товары».
+    // Панель товаров создаётся динамически, но #panels постоянен — слушаем на нём.
+    panels.addEventListener("click", function (e) {
+        var btn = e.target.closest ? e.target.closest("[data-product-id]") : null;
+        if (btn) openCard(btn.getAttribute("data-product-id"));
+    });
+
     // Постоянная вкладка кассы: клик активирует её.
     var cashierTab = tabEl("cashier");
     if (cashierTab) {

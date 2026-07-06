@@ -1,0 +1,28 @@
+<!-- Результаты поиска товара для карточки (разд. 4.4): наличие в системе, наличие в
+     остатке, цена, статус. Кнопка «Открыть карточку» несёт data-product-id — клик
+     перехватывает shell.js (openCard), одна вкладка «Карточка» с подменой товара. -->
+{% if results %}
+<table class="search-table">
+    <tbody>
+        {% for p in results %}
+        <tr>
+            <td>
+                {{ p.name }}
+                <span class="search-status">· {{ p.status.value }}</span>
+            </td>
+            <td class="num">{{ p.price_sell | money }} ₽</td>
+            <td class="num">
+                {% if p.quantity_current > 0 %}{{ p.quantity_current | quantity }} {{ p.unit.value }}{% else %}нет в наличии{% endif %}
+            </td>
+            <td class="num">
+                <button type="button" class="card-btn" data-product-id="{{ p.id }}">
+                    Открыть карточку
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% elif query %}
+<p class="search-empty">Ничего не найдено.</p>
+{% endif %}

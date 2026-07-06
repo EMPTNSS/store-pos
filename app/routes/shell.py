@@ -55,10 +55,16 @@ async def shell_screen(request: Request):
 
 @router.get("/panels/{key}")
 async def section_panel(request: Request, key: str):
-    """Фрагмент-заглушка раздела, подгружается в панель по HTMX один раз."""
+    """Фрагмент раздела, подгружается в панель по HTMX один раз.
+
+    «Товары» — реальная панель поиска для карточки (этап 3.1). Остальные разделы —
+    заглушки до своих этапов (Заявки — 5.3, Добавить — 6, Чеки — 7).
+    """
     title = SECTIONS.get(key)
     if title is None:
         return HTMLResponse("Раздел не найден", status_code=404)
+    if key == "products":
+        return templates.TemplateResponse(request, "products/_panel.html", {})
     return templates.TemplateResponse(
         request,
         "shell/_stub.html",

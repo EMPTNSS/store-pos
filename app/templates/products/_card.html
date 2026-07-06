@@ -1,0 +1,131 @@
+<!-- Полная карточка товара (этап 3.1, макет 5.2/5.3/5.5).
+     Рендерится и при открытии, и при сохранении: формы правки таргетят #product-card
+     и подменяют его целиком (hx-swap="outerHTML"). Корень — один элемент #product-card,
+     чтобы outerHTML-swap заменял чисто. Деньги — через фильтр money. -->
+<div class="product-card" id="product-card">
+<style>
+    .product-card h1 { margin-bottom: 8px; }
+    .product-card h2 { margin-top: 28px; font-size: 1.1rem; border-top: 1px solid #eee;
+        padding-top: 16px; }
+    .product-card dl { margin: 16px 0; }
+    .product-card dl > div { display: flex; justify-content: space-between; gap: 16px;
+        padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+    .product-card dt { color: #666; font-size: 0.88rem; }
+    .product-card dd { margin: 0; font-weight: 600; text-align: right; }
+    .product-card .muted { color: #999; font-weight: 400; }
+    .product-card textarea { display: block; width: 100%; padding: 8px 10px; margin-top: 4px;
+        border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; font-family: inherit; }
+    .product-card .supplier-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .product-card .supplier-row input { margin-top: 0; }
+    .product-card .remove-supplier { flex: 0 0 auto; width: 36px; padding: 8px 0;
+        background: #f3f3f3; border: 1px solid #ccc; border-radius: 4px; color: #c0392b;
+        font-size: 1.1rem; line-height: 1; cursor: pointer; }
+    .product-card .btn-add-supplier { margin-top: 10px; padding: 8px 16px; background: none;
+        border: 1px dashed #4a90e2; border-radius: 4px; color: #2563eb; font-size: 0.95rem;
+        cursor: pointer; }
+    .product-card .qty-form { margin-top: 8px; }
+    .product-card .todo-note { color: #999; font-size: 0.85rem; margin-top: 24px;
+        border-top: 1px solid #eee; padding-top: 12px; }
+</style>
+
+    <h1>{{ product.name }}</h1>
+
+    {% if saved %}<div class="success">Изменения сохранены.</div>{% endif %}
+    {% if errors %}
+    <div class="errors"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <!-- Идентификация (5.2) — read-only: коды якорят историю, не редактируются здесь. -->
+    <dl>
+        <div><dt>Артикул</dt><dd>{{ product.article or "—" }}</dd></div>
+        <div><dt>Числовой код</dt><dd>{{ product.numeric_code }}</dd></div>
+        <div><dt>QR / штрихкод</dt><dd>{{ product.qr_code or "—" }}</dd></div>
+        <div><dt>Создан</dt><dd>{{ product.created_at.strftime("%d.%m.%Y %H:%M") }}</dd></div>
+    </dl>
+
+    <!-- Информация (5.3): наличие, цены, наценка, остаток, статус, поставщики, доп. инфо. -->
+    <dl>
+        <div><dt>Наличие</dt>
+            <dd>{% if view.in_stock %}в наличии{% else %}<span class="muted">нет в наличии</span>{% endif %}</dd></div>
+        <div><dt>Количество</dt><dd>{{ product.quantity_current | quantity }} {{ product.unit.value }}</dd></div>
+        <div><dt>Цена продажи</dt><dd>{{ product.price_sell | money }} ₽</dd></div>
+        <div><dt>Цена закупки</dt><dd>{{ product.price_buy | money }} ₽</dd></div>
+        <div><dt>Наценка</dt>
+            <dd>{{ view.margin_abs | money }} ₽{% if view.margin_pct is not none %} · {{ view.margin_pct }} %{% else %} · <span class="muted">—</span>{% endif %}</dd></div>
+        <div><dt>Мин. остаток</dt><dd>{{ product.min_stock | quantity }} {{ product.unit.value }}</dd></div>
+        <div><dt>Статус</dt><dd>{{ product.status.value }}</dd></div>
+        <div><dt>Поставщики</dt>
+            <dd>{% for s in view.suppliers %}{{ s.name }}{% if not loop.last %}, {% endif %}{% else %}<span class="muted">—</span>{% endfor %}</dd></div>
+        <div><dt>Доп. информация</dt>
+            <dd>{{ product.extra_info or "" }}{% if not product.extra_info %}<span class="muted">—</span>{% endif %}</dd></div>
+    </dl>
+
+    <!-- Форма паспорта (5.5). Подменяет карточку целиком. -->
+    <h2>Редактировать</h2>
+    <form hx-post="/products/{{ product.id }}" hx-target="#product-card" hx-swap="outerHTML">
+        <label for="card-name">Название <span class="required">*</span></label>
+        <input type="text" id="card-name" name="name" required value="{{ product.name }}">
+
+        <label for="card-price-buy">Цена закупки (₽) <span class="required">*</span></label>
+        <input type="text" id="card-price-buy" name="price_buy" required
+               value="{{ product.price_buy | money }}">
+
+        <label for="card-price-sell">Цена продажи (₽) <span class="required">*</span></label>
+        <input type="text" id="card-price-sell" name="price_sell" required
+               value="{{ product.price_sell | money }}">
+
+        <label for="card-unit">Единица измерения <span class="required">*</span></label>
+        <select id="card-unit" name="unit" required>
+            {% for u in units %}
+            <option value="{{ u.value }}" {% if product.unit == u %}selected{% endif %}>{{ u.value }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="card-min-stock">Минимальный остаток</label>
+        <input type="text" id="card-min-stock" name="min_stock" value="{{ product.min_stock | quantity }}">
+
+        <label for="card-status">Статус <span class="required">*</span></label>
+        <select id="card-status" name="status" required>
+            {% for st in statuses %}
+            <option value="{{ st.value }}" {% if product.status == st %}selected{% endif %}>{{ st.value }}</option>
+            {% endfor %}
+        </select>
+        <span class="hint">«Архивный» — снятие с продажи; товар остаётся в базе (не удаляется).</span>
+
+        <label for="card-extra-info">Доп. информация</label>
+        <textarea id="card-extra-info" name="extra_info" rows="3">{{ product.extra_info or "" }}</textarea>
+
+        <label>Поставщики</label>
+        <span class="hint">Выберите из списка или впишите нового — создастся при сохранении.</span>
+        <datalist id="suppliers-datalist">
+            {% for s in suppliers %}<option value="{{ s.name }}"></option>{% endfor %}
+        </datalist>
+        <div id="supplier-rows">
+            {% for s in view.suppliers %}
+            {% set value = s.name %}
+            {% include "products/_supplier_row.html" %}
+            {% endfor %}
+        </div>
+        <button type="button" class="btn-add-supplier"
+                hx-get="/products/supplier-row"
+                hx-target="#supplier-rows" hx-swap="beforeend">
+            + добавить поставщика
+        </button>
+
+        <div class="actions"><button type="submit">Сохранить</button></div>
+    </form>
+
+    <!-- Корректировка остатка (5.5, складской путь) — отдельно от паспорта: пишет движение. -->
+    <h2>Корректировка остатка (инвентаризация)</h2>
+    <form class="qty-form" hx-post="/products/{{ product.id }}/quantity"
+          hx-target="#product-card" hx-swap="outerHTML">
+        <label for="card-quantity">Фактическое количество</label>
+        <input type="text" id="card-quantity" name="quantity"
+               value="{{ product.quantity_current | quantity }}">
+        <span class="hint">Запишется движение «инвентаризация» на разницу с текущим остатком.</span>
+        <div class="actions"><button type="submit">Применить</button></div>
+    </form>
+
+    <!-- Место под историю движений (3.2) и графики цен (3.3) — приходят на своих этапах. -->
+    <p class="todo-note">История движений и графики динамики цен появятся на этапах 3.2 и 3.3.</p>
+</div>

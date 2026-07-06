@@ -35,3 +35,4 @@ class Product(SQLModel, table=True):
     status: ProductStatus = Field(default=ProductStatus.active)
     quantity_current: Decimal = Field(default=Decimal("0"), sa_type=quantity_column())
     created_at: _dt.datetime = Field(default_factory=_dt.datetime.now)
+    extra_info: Optional[str] = Field(default=None)  # доп. информация (макет 5.3/5.5)

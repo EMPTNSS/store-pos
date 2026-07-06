@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 from pydantic import BaseModel, BeforeValidator, field_validator
 
-from app.models.product import UnitEnum
+from app.models.product import ProductStatus, UnitEnum
 
 
 def _parse_kopecks(v: object) -> int:
@@ -82,4 +82,79 @@ class ProductCreate(BaseModel):
     def min_stock_non_negative(cls, v: Decimal) -> Decimal:
         if v < Decimal("0"):
             raise ValueError("Минимальный остаток не может быть отрицательным")
+        return v
+
+
+class ProductEdit(BaseModel):
+    """Правка паспорта товара в карточке (макет 5.5). Без количества и кодов.
+
+    Количество меняется отдельным путём (движение «инвентаризация», см. QuantityAdjust);
+    коды/артикул read-only (якорят историю). Валидаторы — те же правила, что у ProductCreate.
+    """
+
+    name: str
+    price_buy: Kopecks
+    price_sell: Kopecks
+    unit: UnitEnum
+    min_stock: PositiveDecimal = Decimal("0")
+    status: ProductStatus
+    supplier_names: list[str] = []
+    extra_info: Optional[str] = None
+
+    @field_validator("supplier_names")
+    @classmethod
+    def clean_supplier_names(cls, v: list[str]) -> list[str]:
+        return [s.strip() for s in v if s and s.strip()]
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Название не может быть пустым")
+        return v.strip()
+
+    @field_validator("price_sell")
+    @classmethod
+    def price_sell_positive(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("Цена продажи должна быть больше 0")
+        return v
+
+    @field_validator("price_buy")
+    @classmethod
+    def price_buy_non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Цена закупки не может быть отрицательной")
+        return v
+
+    @field_validator("min_stock")
+    @classmethod
+    def min_stock_non_negative(cls, v: Decimal) -> Decimal:
+        if v < Decimal("0"):
+            raise ValueError("Минимальный остаток не может быть отрицательным")
+        return v
+
+    @field_validator("extra_info")
+    @classmethod
+    def clean_extra_info(cls, v: Optional[str]) -> Optional[str]:
+        # Пустая строка/пробелы → None: «нет доп. информации» хранится как NULL.
+        if v is None:
+            return None
+        trimmed = v.strip()
+        return trimmed or None
+
+
+class QuantityAdjust(BaseModel):
+    """Корректировка фактического остатка из карточки (макет 5.5, складской путь).
+
+    Новое количество ≥ 0. Отрицательные остатки запрещены (правила отложены, этап 8).
+    """
+
+    quantity: PositiveDecimal
+
+    @field_validator("quantity")
+    @classmethod
+    def quantity_non_negative(cls, v: Decimal) -> Decimal:
+        if v < Decimal("0"):
+            raise ValueError("Количество не может быть отрицательным")
         return v

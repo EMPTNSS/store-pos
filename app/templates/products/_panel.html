@@ -1,0 +1,28 @@
+<!-- Панель раздела «Товары» (этап 3.1): поиск товара для карточки (разд. 4).
+     Загружается в раму по HTMX один раз (см. shell.js openSection). Движок поиска общий
+     с кассой (разд. 3 и 4 — режимы одного поиска). -->
+<style>
+    .products-search { margin-bottom: 12px; }
+    .products-panel .search-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .products-panel .search-table td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+    .products-panel .search-table td.num { text-align: right; white-space: nowrap; }
+    .products-panel .search-status { color: #888; font-size: 0.85rem; }
+    .products-panel .search-empty { color: #888; margin-top: 8px; }
+    .products-panel .card-btn { background: none; border: none; color: #2563eb; cursor: pointer;
+        font-size: 0.9rem; padding: 0; }
+    .products-panel .card-btn:hover { text-decoration: underline; }
+</style>
+
+<div class="products-panel">
+    <h1>Товары</h1>
+
+    <div class="products-search">
+        <label for="product-search">Поиск товара для карточки</label>
+        <input type="text" id="product-search" name="q" autocomplete="off"
+               placeholder="Название, числовой код или артикул"
+               hx-get="/products/search" hx-target="#product-search-results" hx-swap="innerHTML"
+               hx-trigger="keyup changed delay:300ms">
+    </div>
+
+    <div id="product-search-results"></div>
+</div>
