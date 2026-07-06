@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}POS-система{% endblock %}
+
+{% block content %}
+<style>
+    /* Рама вкладок — минимальный функциональный каркас (единый визуальный слой — позже). */
+    .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid #e5e7eb;
+        margin-bottom: 8px; }
+    .tab { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+        border: 1px solid #e5e7eb; border-bottom: none; border-radius: 6px 6px 0 0;
+        background: #f3f4f6; color: #374151; cursor: pointer; font-size: 0.95rem; }
+    .tab.active { background: #fff; color: #111; font-weight: 600;
+        box-shadow: inset 0 -2px 0 #2563eb; }
+    .tab .close { border: none; background: none; color: #9ca3af; cursor: pointer;
+        font-size: 1rem; line-height: 1; padding: 0 2px; }
+    .tab .close:hover { color: #c0392b; }
+
+    .launcher { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .launcher button { padding: 8px 14px; background: #eef2ff; color: #3730a3;
+        border: 1px solid #c7d2fe; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .launcher button:hover { background: #e0e7ff; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .panel-stub { color: #6b7280; padding: 24px 0; }
+</style>
+
+<!-- Ряд открытых вкладок. «Касса» — постоянная, без крестика (не закрывается). -->
+<div class="tabs" id="tabs">
+    <div class="tab active" data-key="cashier">Касса</div>
+</div>
+
+<!-- Кнопки рабочих разделов: открывают/активируют вкладку (одна на раздел). -->
+<div class="launcher" id="launcher">
+    {% for key, title in sections.items() %}
+    <button type="button" data-key="{{ key }}" data-title="{{ title }}"
+            data-url="/panels/{{ key }}">{{ title }}</button>
+    {% endfor %}
+</div>
+
+<!-- Панели. Касса встроена на сервере и всегда живёт в DOM (стартовая вкладка). -->
+<div id="panels">
+    <section class="panel active" id="panel-cashier">
+        {% include "cashier/_screen.html" %}
+    </section>
+</div>
+
+<script src="/static/shell.js"></script>
+{% endblock %}

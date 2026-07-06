@@ -1,11 +1,16 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.database import init_db
 from app.routes.cashier import router as cashier_router
 from app.routes.customer import router as customer_router
 from app.routes.products import router as products_router
+from app.routes.shell import router as shell_router
+
+_STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -16,6 +21,8 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     application = FastAPI(lifespan=lifespan)
+    application.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+    application.include_router(shell_router)
     application.include_router(products_router)
     application.include_router(cashier_router)
     application.include_router(customer_router)
