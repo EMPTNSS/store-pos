@@ -1,0 +1,53 @@
+<!-- Секция динамики цен (5.6) карточки товара (этап 3.3). Ленивая подгрузка в
+     #product-prices (hx-trigger="load"). Только чтение price_history; ступенчатые
+     кривые строит сервис (build_price_chart), шаблон отрисовывает готовые координаты. -->
+<div class="price-chart">
+<style>
+    .price-chart h2 { margin-top: 28px; font-size: 1.1rem; border-top: 1px solid #eee;
+        padding-top: 16px; }
+    .price-chart .legend { display: flex; gap: 20px; margin: 8px 0 4px; font-size: 0.88rem; }
+    .price-chart .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+    .price-chart .legend .swatch { width: 14px; height: 3px; border-radius: 2px; }
+    .price-chart svg { width: 100%; height: auto; display: block; margin-top: 8px; }
+    .price-chart .axis { stroke: #ddd; stroke-width: 1; }
+    .price-chart .curve-buy { fill: none; stroke: #2a6fb0; stroke-width: 2; }
+    .price-chart .curve-sell { fill: none; stroke: #1a7f37; stroke-width: 2; }
+    .price-chart .dot-buy { fill: #2a6fb0; }
+    .price-chart .dot-sell { fill: #1a7f37; }
+    .price-chart .tick { fill: #888; font-size: 11px; }
+    .price-chart .tick-x { text-anchor: middle; }
+    .price-chart .tick-y { text-anchor: end; }
+    .price-chart .muted { color: #999; }
+    .price-chart .note { color: #999; font-size: 0.85rem; margin-top: 4px; }
+</style>
+
+    <h2>Динамика цен</h2>
+
+    {% if not chart.has_data %}
+    <p class="muted">Нет данных о ценах.</p>
+    {% else %}
+    <div class="legend">
+        <span class="item"><span class="swatch" style="background:#2a6fb0"></span>Закупка</span>
+        <span class="item"><span class="swatch" style="background:#1a7f37"></span>Продажа</span>
+    </div>
+    <svg viewBox="0 0 640 260" role="img" aria-label="График динамики цен">
+        <!-- оси -->
+        <line class="axis" x1="40" y1="40" x2="40" y2="220" />
+        <line class="axis" x1="40" y1="220" x2="600" y2="220" />
+        <!-- подписи оси Y (цены, ₽) -->
+        {% for y, price in chart.y_labels %}
+        <text class="tick tick-y" x="36" y="{{ y + 4 }}">{{ price | money }} ₽</text>
+        {% endfor %}
+        <!-- подписи оси X (даты) -->
+        {% for x, text in chart.x_labels %}
+        <text class="tick tick-x" x="{{ x }}" y="236">{{ text }}</text>
+        {% endfor %}
+        <!-- кривые (ступенчатые) -->
+        <polyline class="curve-buy" points="{{ chart.buy_line }}" />
+        <polyline class="curve-sell" points="{{ chart.sell_line }}" />
+        {% for x, y in chart.buy_dots %}<circle class="dot-buy" cx="{{ x }}" cy="{{ y }}" r="3" />{% endfor %}
+        {% for x, y in chart.sell_dots %}<circle class="dot-sell" cx="{{ x }}" cy="{{ y }}" r="3" />{% endfor %}
+    </svg>
+    {% if chart.single %}<p class="note">Цена не менялась.</p>{% endif %}
+    {% endif %}
+</div>

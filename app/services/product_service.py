@@ -11,7 +11,7 @@ from app.models.product import Product, ProductStatus
 from app.models.receipt import Receipt, ReceiptLine
 from app.models.supplier import ProductSupplierLink, Supplier
 from app.schemas.product import ProductCreate, ProductEdit
-from app.services.money import line_total
+from app.services.money import KOPECKS_PER_UNIT, line_total
 from app.services.supplier_service import resolve_suppliers
 
 
@@ -277,3 +277,125 @@ def product_stats(session: Session, product_id: int) -> dict:
         net_profit += total - cost
 
     return {"sold_total": sold_total, "by_date": by_date, "net_profit": net_profit}
+
+
+# ── Динамика цен (этап 3.3, макет 5.6) ───────────────────────────────────────
+# Только чтение price_history. Геометрия графика — чистая функция build_price_chart,
+# тестируемая без БД и веба; шаблон отрисовывает готовые координаты SVG.
+
+
+def price_history(session: Session, product_id: int) -> list[PriceHistory]:
+    """Точки истории цен товара от старых к новым — ряд для графика (макет 5.6).
+
+    Хронологический порядок нужен графику; вторичная сортировка по id разводит точки
+    одной секунды (устойчивый порядок).
+    """
+    return session.exec(
+        select(PriceHistory)
+        .where(PriceHistory.product_id == product_id)
+        .order_by(PriceHistory.datetime.asc(), PriceHistory.id.asc())
+    ).all()
+
+
+def _price_point(p) -> tuple[_dt.datetime, int, int]:
+    """(datetime, price_buy, price_sell) из PriceHistory или готового кортежа."""
+    if isinstance(p, tuple):
+        return p
+    return (p.datetime, p.price_buy, p.price_sell)
+
+
+def build_price_chart(
+    points, *, width: int = 640, height: int = 260, pad: int = 40
+) -> dict:
+    """Нормализация точек price_history в геометрию SVG (макет 5.6).
+
+    Чистая функция без session — тестируется в изоляции. Ступенчатые кривые закупки и
+    продажи на общих осях: X линейно по времени, Y линейно по цене (единый диапазон на
+    обе кривые, чтобы зазор-наценка был правдив). Деньги остаются в копейках int; во
+    float уходят только координаты пикселей SVG (это не деньги, округление некритично).
+
+    Возвращает словарь для шаблона: has_data, single, buy_line/sell_line (строки points
+    для polyline), buy_dots/sell_dots (маркеры), y_labels (цена в копейках) и x_labels
+    (дата дд.мм.гггг).
+    """
+    empty = {
+        "has_data": False, "single": False,
+        "buy_line": "", "sell_line": "",
+        "buy_dots": [], "sell_dots": [],
+        "y_labels": [], "x_labels": [],
+    }
+    series = sorted((_price_point(p) for p in points), key=lambda t: t[0])
+    if not series:
+        return empty
+
+    prices = [v for _, buy, sell in series for v in (buy, sell)]
+    raw_min, raw_max = min(prices), max(prices)
+    scale_min, scale_max = raw_min, raw_max
+    if scale_max == scale_min:
+        # Цена одна на всём ряду → раздвигаем диапазон, чтобы линия шла по центру,
+        # а не делила на ноль (±10 %, но не меньше 1 ₽).
+        delta = max(KOPECKS_PER_UNIT, raw_max // 10)
+        scale_min, scale_max = raw_min - delta, raw_max + delta
+
+    def r(v: float) -> float:
+        return round(float(v), 1)
+
+    def ycoord(price: int) -> float:
+        # Больше цена — выше (меньше y): инверсия оси SVG.
+        frac = (scale_max - price) / (scale_max - scale_min)
+        return r(pad + frac * (height - 2 * pad))
+
+    y_labels = [(ycoord(raw_max), raw_max)]
+    if raw_max != raw_min:
+        y_labels.append((ycoord(raw_min), raw_min))
+
+    t_min, t_max = series[0][0], series[-1][0]
+
+    if t_max == t_min:
+        # Все точки одномоментны (одна точка / один день) → плоская линия во всю ширину.
+        _, buy, sell = series[-1]
+        yb, ys = ycoord(buy), ycoord(sell)
+        left, right, mid = r(pad), r(width - pad), r(width / 2)
+        return {
+            "has_data": True, "single": True,
+            "buy_line": f"{left},{yb} {right},{yb}",
+            "sell_line": f"{left},{ys} {right},{ys}",
+            "buy_dots": [(mid, yb)], "sell_dots": [(mid, ys)],
+            "y_labels": y_labels,
+            "x_labels": [(mid, t_max.strftime("%d.%m.%Y"))],
+        }
+
+    span = (t_max - t_min).total_seconds()
+
+    def xcoord(t: _dt.datetime) -> float:
+        frac = (t - t_min).total_seconds() / span
+        return r(pad + frac * (width - 2 * pad))
+
+    def step_line(index: int) -> tuple[str, list]:
+        verts, dots, prev_y = [], [], None
+        for t, buy, sell in series:
+            x, y = xcoord(t), ycoord((buy, sell)[index])
+            if prev_y is None:
+                verts.append((x, y))
+            else:
+                verts.append((x, prev_y))  # горизонталь до момента изменения
+                verts.append((x, y))       # вертикальный скачок цены
+            dots.append((x, y))
+            prev_y = y
+        # Дотяжка последней цены до правого края (действует «до сих пор»).
+        verts.append((r(width - pad), prev_y))
+        return " ".join(f"{x},{y}" for x, y in verts), dots
+
+    buy_line, buy_dots = step_line(0)
+    sell_line, sell_dots = step_line(1)
+
+    return {
+        "has_data": True, "single": False,
+        "buy_line": buy_line, "sell_line": sell_line,
+        "buy_dots": buy_dots, "sell_dots": sell_dots,
+        "y_labels": y_labels,
+        "x_labels": [
+            (r(pad), t_min.strftime("%d.%m.%Y")),
+            (r(width - pad), t_max.strftime("%d.%m.%Y")),
+        ],
+    }

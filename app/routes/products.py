@@ -15,8 +15,10 @@ from app.services.money import format_money, format_quantity
 from app.services.product_search import search_products
 from app.services.product_service import (
     adjust_quantity,
+    build_price_chart,
     create_product,
     get_product,
+    price_history,
     product_movements,
     product_stats,
     product_view,
@@ -264,5 +266,25 @@ async def product_movements_section(
             "product": product,
             "movements": product_movements(session, product_id),
             "stats": product_stats(session, product_id),
+        },
+    )
+
+
+@router.get("/products/{product_id}/prices")
+async def product_prices_section(
+    request: Request,
+    product_id: int,
+    session: Session = Depends(get_session),
+):
+    """Динамика цен (5.6): график двух ступенчатых кривых. Ленивая подгрузка секции."""
+    product = get_product(session, product_id)
+    if product is None:
+        return HTMLResponse("Товар не найден", status_code=404)
+    return _render(
+        request,
+        "products/_prices.html",
+        {
+            "product": product,
+            "chart": build_price_chart(price_history(session, product_id)),
         },
     )
