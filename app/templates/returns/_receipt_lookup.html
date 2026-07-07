@@ -1,0 +1,47 @@
+{# Результат поиска завершённого чека для исправления через возврат (4.2, разд. 15.2–15.3).
+   Строки чека — только для чтения (правило 4): исправление переносит позицию в возврат. #}
+{% if error %}
+<p class="search-empty">{{ error }}</p>
+{% elif receipt %}
+<div class="receipt-head">
+    Чек продажи №{{ receipt.receipt_number }},
+    {{ receipt.datetime.strftime('%d.%m.%Y %H:%M') }},
+    итог {{ receipt.total | money }} ₽
+</div>
+<table class="search-table receipt-lines">
+    <thead>
+        <tr>
+            <th>Товар</th>
+            <th class="num">Цена по чеку</th>
+            <th class="num">Продано</th>
+            <th class="num">Возвращено</th>
+            <th class="num">Доступно</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in lines %}
+        <tr>
+            <td>{{ row.line.name }}</td>
+            <td class="num">{{ row.line.price_sell | money }} ₽</td>
+            <td class="num">{{ row.sold | string }} {{ row.line.unit.value }}</td>
+            <td class="num">{{ row.returned | string }}</td>
+            <td class="num">{{ row.available | string }} {{ row.line.unit.value }}</td>
+            <td class="num">
+                {% if row.available > 0 %}
+                <form class="inline-form" hx-post="/returns/from-receipt"
+                      hx-target="#return-cart" hx-swap="innerHTML">
+                    <input type="hidden" name="source_line_id" value="{{ row.line.id }}">
+                    <input type="text" name="quantity" value="{{ row.available | string }}"
+                           autocomplete="off" style="width:4em">
+                    <button type="submit" class="link-btn add-btn">В возврат</button>
+                </form>
+                {% else %}
+                <span class="search-status">возвращено полностью</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}

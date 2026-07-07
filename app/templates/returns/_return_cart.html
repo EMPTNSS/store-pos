@@ -6,7 +6,8 @@
 <div class="sale-result">
     Возврат оформлен. Чек возврата №{{ return_result.number }},
     {{ return_result.payment_method }},
-    к возврату {{ return_result.total | money }} ₽.
+    к возврату {{ return_result.total | money }} ₽{% if return_result.source_number %}
+    — к чеку продажи №{{ return_result.source_number }}{% endif %}.
 </div>
 {% endif %}
 
@@ -26,12 +27,17 @@
         <tr>
             <td>{{ line.name }}</td>
             <td>
+                {% if line.price_locked %}
+                {# Корректирующий возврат (4.2): цена по чеку зафиксирована, не редактируется #}
+                {{ line.price | money }} ₽ <span class="price-locked" title="Цена по чеку">🔒</span>
+                {% else %}
                 <form class="inline-form" hx-post="/returns/items/{{ line.line_id }}/price"
                       hx-target="#return-cart" hx-swap="innerHTML">
                     <input type="text" name="price" value="{{ line.price | money }}"
                            autocomplete="off"> ₽
                     <button type="submit" class="link-btn" title="Применить">↵</button>
                 </form>
+                {% endif %}
             </td>
             <td>
                 <form class="inline-form" hx-post="/returns/items/{{ line.line_id }}/quantity"

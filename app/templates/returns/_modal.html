@@ -4,7 +4,19 @@
         <button type="button" class="return-close" data-return-close title="Закрыть">×</button>
     </div>
 
-    <!-- Поиск товара для возврата по названию/коду/артикулу (разд. 3) -->
+    <!-- Возврат по чеку: исправление завершённого чека (4.2, разд. 15.2–15.3) -->
+    <div class="receipt-lookup-box">
+        <label for="return-receipt-number">Возврат по чеку — номер чека продажи</label>
+        <input type="text" id="return-receipt-number" name="number" autocomplete="off"
+               placeholder="Номер завершённого чека"
+               hx-get="/returns/receipt" hx-target="#receipt-lookup" hx-swap="innerHTML"
+               hx-trigger="keyup changed delay:300ms, search">
+        <div id="receipt-lookup"></div>
+    </div>
+
+    <hr class="return-sep">
+
+    <!-- Свободный возврат (4.1): поиск товара по названию/коду/артикулу (разд. 3) -->
     <div class="search-box">
         <label for="return-search">Поиск товара</label>
         <input type="text" id="return-search" name="q" autocomplete="off"

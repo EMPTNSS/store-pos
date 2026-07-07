@@ -1,9 +1,11 @@
-"""Валидация входа для возврата (этап 4.1). Проверка на границе, до логики (правило 3)."""
+"""Валидация входа для возврата (этап 4.1, дополнено 4.2). Проверка на границе (правило 3)."""
+
+from decimal import Decimal
 
 from pydantic import BaseModel, field_validator
 
 from app.models.receipt import PaymentMethod
-from app.schemas.product import Kopecks
+from app.schemas.product import Kopecks, PositiveDecimal
 
 
 class ReturnComplete(BaseModel):
@@ -34,4 +36,35 @@ class ReturnLinePrice(BaseModel):
     def price_non_negative(cls, v: int) -> int:
         if v < 0:
             raise ValueError("Цена не может быть отрицательной")
+        return v
+
+
+class ReceiptLookup(BaseModel):
+    """Поиск завершённого чека по номеру (4.2). Номер — целое больше 0."""
+
+    number: int
+
+    @field_validator("number")
+    @classmethod
+    def number_positive(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("Номер чека должен быть больше 0")
+        return v
+
+
+class ReturnFromReceipt(BaseModel):
+    """Перенос строки чека в возврат (4.2). Количество > 0 (правило как в ``CartQuantity``).
+
+    Верхнюю границу (≤ доступного) и существование строки проверяет роут/сервис — это
+    состояние БД, а не поле формы.
+    """
+
+    source_line_id: int
+    quantity: PositiveDecimal
+
+    @field_validator("quantity")
+    @classmethod
+    def quantity_positive(cls, v: Decimal) -> Decimal:
+        if v <= Decimal("0"):
+            raise ValueError("Количество должно быть больше 0")
         return v
