@@ -139,6 +139,38 @@
         });
     }
 
+    // Модалка возврата (этап 4.1): разовое действие поверх кассы (2.5), не вкладка.
+    // JS только показывает/прячет оверлей и подгружает тело; вся логика — на сервере.
+    var returnBtn = document.getElementById("return-btn");
+    var returnModal = document.getElementById("return-modal");
+    var returnModalBody = document.getElementById("return-modal-body");
+
+    function openReturnModal() {
+        returnModal.classList.add("open");
+        // Свежее тело при каждом открытии (черновик прошлого возврата уже очищен при закрытии).
+        window.htmx.ajax("GET", "/returns/modal", {
+            target: returnModalBody,
+            swap: "innerHTML",
+        });
+    }
+
+    // Закрыть: очистить черновик на сервере (разовое действие — не откладывают наполовину),
+    // затем спрятать оверлей и опустошить тело.
+    function closeReturnModal() {
+        window.fetch("/returns/clear", { method: "POST" });
+        returnModal.classList.remove("open");
+        returnModalBody.innerHTML = "";
+    }
+
+    if (returnBtn) returnBtn.addEventListener("click", openReturnModal);
+    if (returnModal) {
+        returnModal.addEventListener("click", function (e) {
+            // Клик по фону (вне карточки) или по элементу с data-return-close — закрыть.
+            var closer = e.target.closest ? e.target.closest("[data-return-close]") : null;
+            if (e.target === returnModal || closer) closeReturnModal();
+        });
+    }
+
     // Кнопки-лаунчеры разделов.
     var buttons = launcher.querySelectorAll("button[data-key]");
     for (var i = 0; i < buttons.length; i++) {

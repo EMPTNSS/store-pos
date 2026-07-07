@@ -8,6 +8,11 @@ from app.models.receipt import (
     ReceiptLine,
     ReceiptNumberCounter,
 )
+from app.models.return_receipt import (
+    ReturnNumberCounter,
+    ReturnReceipt,
+    ReturnReceiptLine,
+)
 from app.models.supplier import ProductSupplierLink, Supplier, SupplierStatus
 
 __all__ = [
@@ -22,6 +27,9 @@ __all__ = [
     "Receipt",
     "ReceiptLine",
     "ReceiptNumberCounter",
+    "ReturnReceipt",
+    "ReturnReceiptLine",
+    "ReturnNumberCounter",
     "Supplier",
     "SupplierStatus",
     "ProductSupplierLink",

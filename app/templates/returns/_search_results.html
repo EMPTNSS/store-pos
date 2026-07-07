@@ -1,0 +1,25 @@
+{% if results %}
+<table class="search-table">
+    <tbody>
+        {% for p in results %}
+        <tr>
+            <td>
+                {{ p.name }}
+                <span class="search-status">· {{ p.status.value }}</span>
+            </td>
+            <td class="num">{{ p.price_sell | money }} ₽</td>
+            <td class="num">{{ p.quantity_current | string }} {{ p.unit.value }}</td>
+            <td class="num">
+                <form class="inline-form" hx-post="/returns/items"
+                      hx-target="#return-cart" hx-swap="innerHTML">
+                    <input type="hidden" name="numeric_code" value="{{ p.numeric_code }}">
+                    <button type="submit" class="link-btn add-btn">В возврат</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% elif query %}
+<p class="search-empty">Ничего не найдено.</p>
+{% endif %}

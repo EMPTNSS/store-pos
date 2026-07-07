@@ -1,0 +1,35 @@
+<div class="return-modal-card">
+    <div class="return-modal-header">
+        <h2>Возврат товара</h2>
+        <button type="button" class="return-close" data-return-close title="Закрыть">×</button>
+    </div>
+
+    <!-- Поиск товара для возврата по названию/коду/артикулу (разд. 3) -->
+    <div class="search-box">
+        <label for="return-search">Поиск товара</label>
+        <input type="text" id="return-search" name="q" autocomplete="off"
+               placeholder="Название, числовой код или артикул"
+               hx-get="/returns/search" hx-target="#return-search-results" hx-swap="innerHTML"
+               hx-trigger="keyup changed delay:300ms">
+        <div id="return-search-results"></div>
+    </div>
+
+    <!-- Сканер / быстрый ввод кода: добавляет по Enter (разд. 2) -->
+    <form class="add-row" hx-post="/returns/items" hx-target="#return-cart" hx-swap="innerHTML"
+          hx-on::after-request="this.reset(); this.querySelector('input').focus()">
+        <div>
+            <label for="return-numeric-code">Сканер / код товара</label>
+            <input type="text" id="return-numeric-code" name="numeric_code" autofocus
+                   placeholder="Отсканируйте или введите код" autocomplete="off">
+        </div>
+        <button type="submit">Добавить</button>
+    </form>
+
+    <div id="return-cart">
+        {% include "returns/_return_cart.html" %}
+    </div>
+
+    <div class="return-modal-footer">
+        <button type="button" class="btn btn-clear" data-return-close>Отмена</button>
+    </div>
+</div>
