@@ -18,6 +18,7 @@ from app.services.product_service import (
     build_price_chart,
     create_product,
     get_product,
+    is_low_stock,
     price_history,
     product_movements,
     product_stats,
@@ -152,8 +153,12 @@ async def search_for_card(
     q: str = "",
     session: Session = Depends(get_session),
 ):
-    """Поиск товара для карточки (разд. 4). Тот же движок, что на кассе."""
-    results = search_products(session, q)
+    """Поиск товара для карточки (разд. 4). Тот же движок, что на кассе.
+
+    К каждому товару прикладываем флаг low_stock (5.2, разд. 10.5) — считаем в роуте,
+    чтобы не дублировать критерий минимума в шаблоне.
+    """
+    results = [(p, is_low_stock(p)) for p in search_products(session, q)]
     return _render(
         request,
         "products/_search_results.html",

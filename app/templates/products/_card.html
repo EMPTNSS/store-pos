@@ -26,6 +26,10 @@
     .product-card .qty-form { margin-top: 8px; }
     .product-card .todo-note { color: #999; font-size: 0.85rem; margin-top: 24px;
         border-top: 1px solid #eee; padding-top: 12px; }
+    /* Пометка достижения минимального остатка (5.2, разд. 10.5). */
+    .product-card .low-stock { display: inline-block; margin-left: 8px; padding: 1px 8px;
+        background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 10px;
+        font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
 </style>
 
     <h1>{{ product.name }}</h1>
@@ -47,12 +51,14 @@
     <dl>
         <div><dt>Наличие</dt>
             <dd>{% if view.in_stock %}в наличии{% else %}<span class="muted">нет в наличии</span>{% endif %}</dd></div>
-        <div><dt>Количество</dt><dd>{{ product.quantity_current | quantity }} {{ product.unit.value }}</dd></div>
+        <div><dt>Количество</dt>
+            <dd>{{ product.quantity_current | quantity }} {{ product.unit.value }}{% if view.low_stock %}<span class="low-stock">⚠ достигнут минимальный остаток</span>{% endif %}</dd></div>
         <div><dt>Цена продажи</dt><dd>{{ product.price_sell | money }} ₽</dd></div>
         <div><dt>Цена закупки</dt><dd>{{ product.price_buy | money }} ₽</dd></div>
         <div><dt>Наценка</dt>
             <dd>{{ view.margin_abs | money }} ₽{% if view.margin_pct is not none %} · {{ view.margin_pct }} %{% else %} · <span class="muted">—</span>{% endif %}</dd></div>
-        <div><dt>Мин. остаток</dt><dd>{{ product.min_stock | quantity }} {{ product.unit.value }}</dd></div>
+        <div><dt>Мин. остаток</dt>
+            <dd>{% if product.min_stock > 0 %}{{ product.min_stock | quantity }} {{ product.unit.value }}{% else %}<span class="muted">не задан</span>{% endif %}</dd></div>
         <div><dt>Статус</dt><dd>{{ product.status.value }}</dd></div>
         <div><dt>Поставщики</dt>
             <dd>{% for s in view.suppliers %}{{ s.name }}{% if not loop.last %}, {% endif %}{% else %}<span class="muted">—</span>{% endfor %}</dd></div>

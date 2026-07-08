@@ -90,6 +90,18 @@ def product_suppliers(session: Session, product_id: int) -> list[Supplier]:
     return sorted(suppliers, key=lambda s: s.name.casefold())
 
 
+def is_low_stock(product: Product) -> bool:
+    """Достигнут ли минимальный остаток (макет разд. 10.4). Чистая функция, без session.
+
+    Товар «ниже минимума», когда порог задан и остаток его достиг:
+    ``min_stock > 0 and quantity_current <= min_stock``. Порог включителен: остаток, равный
+    минимуму, уже считается достигнутым (разд. 10.4 п.3). ``min_stock == 0`` = «минимум не
+    задан» → отслеживание выключено (ноль — отсутствие порога, а не «заказывать всегда»).
+    Сравнение Decimal — работает одинаково для штучных и весовых товаров.
+    """
+    return product.min_stock > 0 and product.quantity_current <= product.min_stock
+
+
 def product_view(session: Session, product: Product) -> dict:
     """Вычисляемые значения для показа карточки (спец 0.2 п.7). Нигде не хранятся.
 
@@ -103,6 +115,7 @@ def product_view(session: Session, product: Product) -> dict:
         margin_pct = (Decimal(sell - buy) / Decimal(buy) * 100).quantize(Decimal("0.1"))
     return {
         "in_stock": product.quantity_current > 0,
+        "low_stock": is_low_stock(product),  # достигнут минимум (разд. 10.5)
         "margin_abs": sell - buy,
         "margin_pct": margin_pct,
         "suppliers": product_suppliers(session, product.id),

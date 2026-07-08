@@ -1,14 +1,16 @@
 <!-- Результаты поиска товара для карточки (разд. 4.4): наличие в системе, наличие в
      остатке, цена, статус. Кнопка «Открыть карточку» несёт data-product-id — клик
-     перехватывает shell.js (openCard), одна вкладка «Карточка» с подменой товара. -->
+     перехватывает shell.js (openCard), одна вкладка «Карточка» с подменой товара.
+     Каждый элемент results — пара (product, low_stock); флаг считает роут (5.2). -->
 {% if results %}
 <table class="search-table">
     <tbody>
-        {% for p in results %}
+        {% for p, low_stock in results %}
         <tr>
             <td>
                 {{ p.name }}
                 <span class="search-status">· {{ p.status.value }}</span>
+                {% if low_stock %}<span class="low-stock">⚠ ниже минимума</span>{% endif %}
             </td>
             <td class="num">{{ p.price_sell | money }} ₽</td>
             <td class="num">
