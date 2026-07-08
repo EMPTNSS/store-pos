@@ -1,0 +1,8 @@
+<!-- Открытые заявки по поставщикам (макет 11.5/11.6). Одна карточка = одна заявка. -->
+{% if open_orders %}
+    {% for view in open_orders %}
+    {% include "orders/_order.html" %}
+    {% endfor %}
+{% else %}
+<p class="empty">Открытых заявок нет.</p>
+{% endif %}

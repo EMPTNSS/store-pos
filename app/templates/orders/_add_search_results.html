@@ -1,0 +1,23 @@
+<!-- Результаты поиска товара для ручного добавления в заявку (макет 11.6). «+» добавляет
+     товар в эту заявку (order_id) и перерисовывает тело панели. -->
+{% if results %}
+<table class="cand-table">
+    <tbody>
+        {% for p in results %}
+        <tr>
+            <td>{{ p.name }} <span class="muted">· {{ p.status.value }}</span></td>
+            <td class="num muted">{{ p.quantity_current | quantity }} {{ p.unit.value }}</td>
+            <td class="num">
+                <form class="inline-form" hx-post="/orders/{{ order_id }}/lines"
+                      hx-target="#orders-body" hx-swap="innerHTML">
+                    <input type="hidden" name="product_id" value="{{ p.id }}">
+                    <button type="submit" class="plus-btn">+ добавить</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% elif query %}
+<p class="empty">Ничего не найдено.</p>
+{% endif %}

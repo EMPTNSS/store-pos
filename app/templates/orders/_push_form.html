@@ -1,0 +1,55 @@
+<!-- Форма проброса кандидата в заявку (макет 11.9.5). Модалка внутри панели: успех → тело
+     панели (#orders-body) перерисовывается, модалка обнуляется; ошибка/неоднозначный
+     поставщик → форма возвращается в #orders-modal (HX-Retarget в роуте).
+     Выбор поставщика: предвыбран (группа поставщика) / из списка поставщиков товара /
+     ввод нового имени (инлайн-создание). Нужное количество редактируемо. -->
+<div class="push-modal" onclick="if(event.target===this) this.remove()">
+    <div class="push-card">
+        <h3>В заявку: {{ product.name }}</h3>
+        <form hx-post="/orders/push" hx-target="#orders-body" hx-swap="innerHTML">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+
+            <div class="field">
+                {% if preselected %}
+                <label>Поставщик</label>
+                <input type="hidden" name="supplier_id" value="{{ preselected.id }}">
+                <div>{{ preselected.name }}</div>
+                {% else %}
+                {% if product_suppliers %}
+                <label>Поставщик товара</label>
+                <select name="supplier_id">
+                    <option value="">— выберите поставщика —</option>
+                    {% for s in product_suppliers %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+                <label>{% if product_suppliers %}или новый поставщик{% else %}Поставщик (введите){% endif %}</label>
+                <input type="text" class="full" name="supplier_name" list="orders-suppliers-datalist"
+                       autocomplete="off" placeholder="Название нового или существующего">
+                <datalist id="orders-suppliers-datalist">
+                    {% for s in active_suppliers %}<option value="{{ s.name }}">{% endfor %}</datalist>
+                {% endif %}
+            </div>
+
+            <div class="field">
+                <label>Нужное количество ({{ product.unit.value }})</label>
+                <input type="text" class="full" name="needed_quantity"
+                       value="{{ suggested | quantity }}" autocomplete="off">
+            </div>
+
+            <div class="field">
+                <label>Комментарий (необязательно)</label>
+                <input type="text" class="full" name="comment" autocomplete="off">
+            </div>
+
+            {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+            <div class="push-actions">
+                <button type="button" class="link-btn"
+                        onclick="document.getElementById('orders-modal').innerHTML=''">Отмена</button>
+                <button type="submit">Добавить в заявку</button>
+            </div>
+        </form>
+    </div>
+</div>

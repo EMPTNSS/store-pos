@@ -1,0 +1,62 @@
+<!-- Панель раздела «Заявки» (этап 5.3, макет разд. 11). Загружается в раму по HTMX один раз
+     (см. shell.js openSection). Тело живёт в #orders-body и целиком перерисовывается после
+     любого изменения; модалка проброса — #orders-modal внутри тела (обнуляется при перерисовке). -->
+<style>
+    .orders-panel h1 { margin-bottom: 4px; }
+    .orders-panel h2 { margin: 18px 0 8px; font-size: 1.1rem; }
+    .orders-panel .muted { color: #6b7280; }
+    .orders-panel .empty { color: #888; margin: 6px 0; }
+
+    /* Кандидаты на заказ, сгруппированы по поставщику. */
+    .orders-panel .supplier-group { margin-bottom: 14px; }
+    .orders-panel .supplier-group > h3 { margin: 8px 0 4px; font-size: 0.98rem; color: #374151; }
+    .orders-panel .cand-table, .orders-panel .order-table { width: 100%; border-collapse: collapse; }
+    .orders-panel .cand-table td, .orders-panel .order-table td,
+    .orders-panel .order-table th { padding: 5px 10px; border-bottom: 1px solid #eee; text-align: left; }
+    .orders-panel td.num, .orders-panel th.num { text-align: right; white-space: nowrap; }
+    .orders-panel .badge { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px;
+        font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .orders-panel .badge.low { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .orders-panel .badge.out { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .orders-panel .badge.inord { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+    .orders-panel .plus-btn, .orders-panel .link-btn { background: none; border: none; color: #2563eb;
+        cursor: pointer; font-size: 0.9rem; padding: 0; }
+    .orders-panel .plus-btn:hover, .orders-panel .link-btn:hover { text-decoration: underline; }
+    .orders-panel .danger { color: #b91c1c; }
+
+    /* Карточка одной заявки. */
+    .orders-panel .order-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px;
+        margin-bottom: 12px; }
+    .orders-panel .order-card.closed { background: #f9fafb; }
+    .orders-panel .order-head { display: flex; align-items: baseline; justify-content: space-between;
+        gap: 8px; margin-bottom: 6px; }
+    .orders-panel .order-head .who { font-weight: 600; }
+    .orders-panel .order-meta { color: #6b7280; font-size: 0.85rem; }
+    .orders-panel input[type=text], .orders-panel input[type=number] { padding: 3px 6px; }
+    .orders-panel .qty-input { width: 5rem; }
+    .orders-panel .cmt-input { width: 12rem; }
+    .orders-panel .order-add { margin-top: 8px; }
+    .orders-panel .order-add label { font-size: 0.85rem; color: #374151; }
+
+    /* Модалка проброса (выбор поставщика + нужное кол-во). */
+    .orders-panel .push-modal { position: fixed; inset: 0; z-index: 90; background: rgba(17,24,39,0.45);
+        display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; }
+    .orders-panel .push-card { background: #fff; margin-top: 60px; padding: 18px 22px; border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.25); width: 420px; max-width: 92%; }
+    .orders-panel .push-card h3 { margin: 0 0 10px; }
+    .orders-panel .push-card .field { margin-bottom: 10px; }
+    .orders-panel .push-card label { display: block; font-size: 0.85rem; color: #374151; margin-bottom: 3px; }
+    .orders-panel .push-card select, .orders-panel .push-card .full { width: 100%; box-sizing: border-box; padding: 4px 6px; }
+    .orders-panel .push-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .orders-panel .error { color: #b91c1c; margin: 6px 0 0; }
+</style>
+
+<div class="orders-panel">
+    <h1>Заявки</h1>
+    <p class="muted">Пополнение по поставщикам (макет разд. 11).</p>
+
+    <div id="orders-body">
+        {% include "orders/_body.html" %}
+    </div>
+</div>

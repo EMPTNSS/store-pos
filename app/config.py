@@ -7,6 +7,11 @@ class Settings(BaseSettings):
 
     app_name: str = "store-pos"
     debug: bool = False
+
+    # Магазин (торговая точка продавца). v1 — одна точка; заявки на пополнение (этап 5.3,
+    # макет 11.4) пишут это имя в поле store, чтобы схема была готова к нескольким точкам
+    # без переписывания. Отдельной сущности «Магазин» и UI выбора пока нет.
+    store_name: str = "Магазин"
     db_path: Path = Path("data/store.db")
     db_echo: bool = False
     host: str = "127.0.0.1"

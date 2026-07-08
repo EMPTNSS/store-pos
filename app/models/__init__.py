@@ -1,5 +1,6 @@
 from app.models.counter import ProductCodeCounter
 from app.models.movement import Movement, OperationType
+from app.models.order import Order, OrderLine, OrderStatus
 from app.models.price_history import PriceHistory
 from app.models.product import Product, ProductStatus, UnitEnum
 from app.models.receipt import (
@@ -21,6 +22,9 @@ __all__ = [
     "UnitEnum",
     "Movement",
     "OperationType",
+    "Order",
+    "OrderLine",
+    "OrderStatus",
     "PriceHistory",
     "ProductCodeCounter",
     "PaymentMethod",

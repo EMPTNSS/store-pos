@@ -7,12 +7,19 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from sqlmodel import Session
 
+from app.database import get_session
 from app.services.cart import get_cart
-from app.services.money import format_money
+from app.services.money import format_money, format_quantity
+from app.services.order_service import (
+    list_candidates,
+    list_closed_orders,
+    list_open_orders,
+)
 
 router = APIRouter()
 
@@ -21,7 +28,9 @@ templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 # Рама встраивает шаблон кассы (_screen.html → _cart.html), который использует фильтр
 # денег. Регистрируем тот же формат, что на кассе и в печати (app/services/money.py).
+# Фильтр количества нужен панели «Заявки» (5.3), встраиваемой через section_panel.
 templates.env.filters["money"] = format_money
+templates.env.filters["quantity"] = format_quantity
 
 # Белый список разделов рамы: key (англ., для id/URL) → заголовок вкладки (рус.).
 # Наполнение приходит на своих этапах (Товары/Заявки — 3/5.3, Добавить — 6, Чеки — 7),
@@ -54,17 +63,30 @@ async def shell_screen(request: Request):
 
 
 @router.get("/panels/{key}")
-async def section_panel(request: Request, key: str):
+async def section_panel(
+    request: Request, key: str, session: Session = Depends(get_session)
+):
     """Фрагмент раздела, подгружается в панель по HTMX один раз.
 
-    «Товары» — реальная панель поиска для карточки (этап 3.1). Остальные разделы —
-    заглушки до своих этапов (Заявки — 5.3, Добавить — 6, Чеки — 7).
+    «Товары» — реальная панель поиска для карточки (этап 3.1). «Заявки» — панель
+    пополнения (этап 5.3). Остальные разделы — заглушки до своих этапов (Добавить — 6,
+    Чеки — 7).
     """
     title = SECTIONS.get(key)
     if title is None:
         return HTMLResponse("Раздел не найден", status_code=404)
     if key == "products":
         return templates.TemplateResponse(request, "products/_panel.html", {})
+    if key == "orders":
+        return templates.TemplateResponse(
+            request,
+            "orders/_panel.html",
+            {
+                "candidates": list_candidates(session),
+                "open_orders": list_open_orders(session),
+                "closed_orders": list_closed_orders(session),
+            },
+        )
     return templates.TemplateResponse(
         request,
         "shell/_stub.html",

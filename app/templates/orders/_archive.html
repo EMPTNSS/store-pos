@@ -1,0 +1,35 @@
+<!-- Архив закрытых заявок (макет 11.8): сохраняются, доступны только для просмотра. -->
+{% if closed_orders %}
+    {% for view in closed_orders %}
+    <div class="order-card closed">
+        <div class="order-head">
+            <span class="who">{{ view.supplier.name if view.supplier else 'Без поставщика' }}</span>
+            <span class="order-meta">
+                {{ view.order.store }} · создана {{ view.order.created_at.strftime('%d.%m.%Y') }}
+                {% if view.order.closed_at %}· закрыта {{ view.order.closed_at.strftime('%d.%m.%Y') }}{% endif %}
+                · {{ view.order.status.value }}
+            </span>
+        </div>
+        {% if view.lines %}
+        <table class="order-table">
+            <thead>
+                <tr><th>Товар</th><th class="num">Заказано</th><th>Комментарий</th></tr>
+            </thead>
+            <tbody>
+                {% for lv in view.lines %}
+                <tr>
+                    <td>{{ lv.product.name }}</td>
+                    <td class="num">{{ lv.line.needed_quantity | quantity }} {{ lv.product.unit.value }}</td>
+                    <td class="muted">{{ lv.line.comment | default('', true) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Заявка без позиций.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+<p class="empty">Архив пуст.</p>
+{% endif %}

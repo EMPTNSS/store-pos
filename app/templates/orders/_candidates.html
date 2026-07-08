@@ -1,0 +1,40 @@
+<!-- Кандидаты на заказ (макет 11.2/11.9.4): товары ниже минимума или закончившиеся,
+     сгруппированы по поставщику. «+» открывает форму проброса (модалку). Проброс всегда
+     ручной, с выбором поставщика и правкой количества (макет 11.9.5). -->
+{% if candidates %}
+    {% for group in candidates %}
+    <div class="supplier-group">
+        <h3>
+            {% if group.supplier %}{{ group.supplier.name }}{% else %}Разный / без поставщика{% endif %}
+        </h3>
+        <table class="cand-table">
+            <tbody>
+                {% for item in group['items'] %}
+                <tr>
+                    <td>
+                        {{ item.product.name }}
+                        {% if item.product.quantity_current <= 0 %}
+                        <span class="badge out">закончился</span>
+                        {% else %}
+                        <span class="badge low">ниже минимума</span>
+                        {% endif %}
+                        {% if item.already %}<span class="badge inord">уже в заявке</span>{% endif %}
+                    </td>
+                    <td class="num">
+                        {{ item.product.quantity_current | quantity }} / мин {{ item.product.min_stock | quantity }}
+                        {{ item.product.unit.value }}
+                    </td>
+                    <td class="num">
+                        <button type="button" class="plus-btn" title="В заявку"
+                                hx-get="/orders/push-form?product_id={{ item.product.id }}{% if group.supplier %}&supplier_id={{ group.supplier.id }}{% endif %}"
+                                hx-target="#orders-modal" hx-swap="innerHTML">+ в заявку</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+{% else %}
+<p class="empty">Нет товаров, требующих заказа.</p>
+{% endif %}
