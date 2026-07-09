@@ -1,0 +1,51 @@
+<!-- Панель раздела «Добавить» (этап 6.1): ручной приём накладной (макет 12.3).
+     Загружается в раму по HTMX один раз (см. shell.js openSection). Движок поиска общий
+     с «Товары»/кассой (search_products). Всё внутри панели: поиск → результаты → форма
+     приёма/создания. Свои id (#receiving-*), не пересекаются с кассой/товарами (изоляция 2.5). -->
+<style>
+    .receiving-panel .receiving-search { margin-bottom: 12px; }
+    .receiving-panel .search-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .receiving-panel .search-table td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+    .receiving-panel .search-table td.num { text-align: right; white-space: nowrap; }
+    .receiving-panel .search-status { color: #888; font-size: 0.85rem; }
+    .receiving-panel .low-stock { display: inline-block; margin-left: 6px; padding: 0 7px;
+        background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 10px;
+        font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .receiving-panel .search-empty { color: #888; margin-top: 8px; }
+    .receiving-panel .receive-btn { background: #eef2ff; border: 1px solid #c7d2fe;
+        color: #3730a3; cursor: pointer; font-size: 0.85rem; padding: 4px 12px; border-radius: 4px; }
+    .receiving-panel .receive-btn:hover { background: #e0e7ff; }
+    .receiving-panel .create-btn { margin-top: 8px; padding: 8px 16px; background: none;
+        border: 1px dashed #4a90e2; border-radius: 4px; color: #2563eb; cursor: pointer; }
+    /* Слот формы приёма/создания — визуально отделён от результатов поиска. */
+    .receiving-panel .receive-slot:not(:empty) { margin-top: 16px; padding-top: 16px;
+        border-top: 1px solid #e5e7eb; }
+    .receiving-panel .receive-context { color: #555; font-size: 0.9rem; margin: 4px 0 12px; }
+    .receiving-panel .link-btn { border: none; background: none; color: #2563eb; cursor: pointer;
+        padding: 0; font-size: 0.9rem; margin-left: 12px; }
+    .receiving-panel .link-btn:hover { text-decoration: underline; }
+    /* Ряды поставщика в форме создания (совпадает с products/new.html). */
+    .receiving-panel .supplier-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .receiving-panel .supplier-row input { margin-top: 0; }
+    .receiving-panel .remove-supplier { flex: 0 0 auto; width: 36px; padding: 8px 0;
+        background: #f3f3f3; border: 1px solid #ccc; border-radius: 4px; color: #c0392b;
+        font-size: 1.1rem; line-height: 1; cursor: pointer; }
+    .receiving-panel .btn-add-supplier { margin-top: 10px; padding: 8px 16px; background: none;
+        border: 1px dashed #4a90e2; border-radius: 4px; color: #2563eb; font-size: 0.95rem;
+        cursor: pointer; }
+</style>
+
+<div class="receiving-panel">
+    <h1>Добавить — приём товара</h1>
+
+    <div class="receiving-search">
+        <label for="receiving-search-input">Поиск товара для приёма</label>
+        <input type="text" id="receiving-search-input" name="q" autocomplete="off"
+               placeholder="Название, числовой код или артикул"
+               hx-get="/receiving/search" hx-target="#receiving-results" hx-swap="innerHTML"
+               hx-trigger="keyup changed delay:300ms">
+    </div>
+
+    <div id="receiving-results"></div>
+    <div id="receiving-form" class="receive-slot"></div>
+</div>

@@ -1,0 +1,41 @@
+<!-- Форма приёма одного товара (макет 12.3): пришедшее количество + обе цены. Цены
+     предзаполнены текущими и необязательны — оставленные без изменения не трогают цену
+     (сервис пишет price_history только на реальное изменение). Ошибки → 422 + перерисовка. -->
+<div class="receive-form">
+    <h2>Приём: {{ product.name }}</h2>
+    <p class="receive-context">
+        Текущий остаток: {{ product.quantity_current | quantity }} {{ product.unit.value }}
+        · закупка {{ product.price_buy | money }} ₽
+        · продажа {{ product.price_sell | money }} ₽
+    </p>
+
+    {% if errors %}
+    <div class="errors">
+        <ul>{% for err in errors %}<li>{{ err }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <form hx-post="/receiving/{{ product.id }}" hx-target="#receiving-form" hx-swap="innerHTML">
+        <label for="received_quantity">Пришедшее количество <span class="required">*</span></label>
+        <input type="text" id="received_quantity" name="received_quantity" required
+               value="{{ values.get('received_quantity', '') }}" placeholder="10">
+        <span class="hint">Прибавится к текущему остатку. Целое или дробное (1.5 кг), больше 0.</span>
+
+        <label for="price_buy">Цена закупки (₽)</label>
+        <input type="text" id="price_buy" name="price_buy"
+               value="{{ values.get('price_buy', product.price_buy | money) }}">
+        <span class="hint">Оставьте как есть, если цена не изменилась.</span>
+
+        <label for="price_sell">Цена продажи (₽)</label>
+        <input type="text" id="price_sell" name="price_sell"
+               value="{{ values.get('price_sell', product.price_sell | money) }}">
+
+        <div class="actions">
+            <button type="submit">Оприходовать</button>
+            <button type="button" class="link-btn"
+                    onclick="document.getElementById('receiving-form').innerHTML=''">
+                Отмена
+            </button>
+        </div>
+    </form>
+</div>

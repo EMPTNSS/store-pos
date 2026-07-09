@@ -46,25 +46,18 @@ class TestShellPage:
 
 
 class TestSectionPanels:
-    def test_add_panel_has_test_field(self, client):
-        # У «Добавить» — тестовое поле для проверки сохранности состояния.
-        resp = client.get("/panels/add")
-        assert resp.status_code == 200
-        assert "add-test-field" in resp.text
-
-    def test_other_panels_have_no_test_field(self, client):
-        # Тестовое поле — только у «Добавить», больше нигде.
-        for key in ("products", "orders", "receipts"):
+    def test_no_panel_has_test_field(self, client):
+        # Тестовое поле рамы (2.5) убрано с наполнением «Добавить» (6.1) — больше нигде.
+        for key in SECTIONS:
             resp = client.get(f"/panels/{key}")
             assert resp.status_code == 200
             assert "add-test-field" not in resp.text
 
     def test_panels_are_stubs(self, client):
-        # Разделы без наполнения — заглушки (приходят на своих этапах). «Товары»
-        # наполнены с этапа 3.1 (поиск для карточки), «Заявки» — с этапа 5.3
-        # (пополнение), поэтому исключены.
+        # Разделы без наполнения — заглушки (приходят на своих этапах). «Товары» — 3.1,
+        # «Заявки» — 5.3, «Добавить» — 6.1 наполнены, поэтому исключены; остаётся «Чеки».
         for key in SECTIONS:
-            if key in ("products", "orders"):
+            if key in ("products", "orders", "add"):
                 continue
             assert "в разработке" in client.get(f"/panels/{key}").text
 
@@ -81,6 +74,13 @@ class TestSectionPanels:
         assert resp.status_code == 200
         assert "в разработке" not in resp.text
         assert "Кандидаты на заказ" in resp.text
+
+    def test_add_panel_is_real_receiving(self, client):
+        # «Добавить» — реальная панель ручного приёма (этап 6.1), не заглушка.
+        resp = client.get("/panels/add")
+        assert resp.status_code == 200
+        assert "в разработке" not in resp.text
+        assert "Поиск товара для приёма" in resp.text
 
     def test_unknown_panel_404(self, client):
         # Ключ не из белого списка — 404, произвольные панели не открываем.

@@ -1,0 +1,39 @@
+<!-- Создание карточки нового товара из приёма (макет 12.3, ветка «товара нет»). Фрагмент
+     в слот #receiving-form. Поля создания общие с products/new.html (partial _create_fields),
+     логика — существующий create_product (0.3). На успех — подтверждение с числовым кодом. -->
+<div class="create-card">
+{% if created_code %}
+    <div class="success">
+        Товар создан. Числовой код: <strong>{{ created_code }}</strong>.
+    </div>
+    <div class="actions">
+        <button type="button" class="create-btn"
+                hx-get="/receiving/new" hx-target="#receiving-form" hx-swap="innerHTML">
+            Создать ещё
+        </button>
+        <button type="button" class="link-btn"
+                onclick="document.getElementById('receiving-form').innerHTML=''">
+            Вернуться к поиску
+        </button>
+    </div>
+{% else %}
+    <h2>Новая карточка</h2>
+
+    {% if errors %}
+    <div class="errors">
+        <ul>{% for err in errors %}<li>{{ err }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <form hx-post="/receiving/create" hx-target="#receiving-form" hx-swap="innerHTML">
+        {% include "products/_create_fields.html" %}
+        <div class="actions">
+            <button type="submit">Создать товар</button>
+            <button type="button" class="link-btn"
+                    onclick="document.getElementById('receiving-form').innerHTML=''">
+                Отмена
+            </button>
+        </div>
+    </form>
+{% endif %}
+</div>

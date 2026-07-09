@@ -1,0 +1,23 @@
+<!-- Подтверждение приёма (макет 12.3): новый остаток и действующие цены. Оприходовать ещё
+     (тот же товар) или вернуться к поиску (очистить слот формы). -->
+<div class="received-ok">
+    <div class="success">
+        Оприходовано. <strong>{{ product.name }}</strong>: остаток
+        {{ product.quantity_current | quantity }} {{ product.unit.value }}.
+    </div>
+    <p class="receive-context">
+        Действующие цены: закупка {{ product.price_buy | money }} ₽
+        · продажа {{ product.price_sell | money }} ₽.
+    </p>
+    <div class="actions">
+        <button type="button" class="receive-btn"
+                hx-get="/receiving/{{ product.id }}/form"
+                hx-target="#receiving-form" hx-swap="innerHTML">
+            Оприходовать ещё
+        </button>
+        <button type="button" class="link-btn"
+                onclick="document.getElementById('receiving-form').innerHTML=''">
+            Вернуться к поиску
+        </button>
+    </div>
+</div>

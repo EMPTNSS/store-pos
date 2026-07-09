@@ -9,6 +9,7 @@ from app.routes.cashier import router as cashier_router
 from app.routes.customer import router as customer_router
 from app.routes.orders import router as orders_router
 from app.routes.products import router as products_router
+from app.routes.receiving import router as receiving_router
 from app.routes.returns import router as returns_router
 from app.routes.shell import router as shell_router
 
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
     application.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
     application.include_router(shell_router)
     application.include_router(products_router)
+    application.include_router(receiving_router)
     application.include_router(orders_router)
     application.include_router(cashier_router)
     application.include_router(returns_router)

@@ -206,6 +206,58 @@ def adjust_quantity(
     return product
 
 
+def receive_product(
+    session: Session,
+    product_id: int,
+    received_quantity: Decimal,
+    price_buy: Optional[int] = None,
+    price_sell: Optional[int] = None,
+) -> Product:
+    """Приход существующего товара при ручном приёме накладной (макет 12.3, этап 6.1).
+
+    Приход **прибавляет** к остатку и пишет движение «приход» — в отличие от
+    adjust_quantity (3.1), которая выставляет абсолютный остаток и пишет «инвентаризация».
+    Кол-во > 0 гарантировано схемой ProductReceive, поэтому движение пишется всегда.
+
+    Цены необязательны: None → цена не меняется. Если хотя бы одна цена реально изменилась
+    против текущей — добавляется одна точка price_history с новой парой (0.2 п.11). Всё —
+    одной транзакцией (CLAUDE.md правила 2, 5): остаток, движение и точка истории вместе.
+    """
+    now = _dt.datetime.now()
+    product = session.get(Product, product_id)
+
+    product.quantity_current += received_quantity
+    session.add(
+        Movement(
+            product_id=product.id,
+            datetime=now,
+            quantity=received_quantity,  # знак +: приход прибавляет
+            operation_type=OperationType.income,
+        )
+    )
+
+    new_buy = price_buy if price_buy is not None else product.price_buy
+    new_sell = price_sell if price_sell is not None else product.price_sell
+    price_changed = new_buy != product.price_buy or new_sell != product.price_sell
+    product.price_buy = new_buy
+    product.price_sell = new_sell
+    session.add(product)
+
+    if price_changed:
+        session.add(
+            PriceHistory(
+                product_id=product.id,
+                datetime=now,
+                price_buy=new_buy,
+                price_sell=new_sell,
+            )
+        )
+
+    session.commit()
+    session.refresh(product)
+    return product
+
+
 # ── История движений и статистика (этап 3.2, макет 5.7/5.4) ──────────────────
 # Только чтение: количество берём из movement, деньги (прибыль) — из receipt_line
 # + price_history (себестоимость на момент продажи). Хранилище не меняется.

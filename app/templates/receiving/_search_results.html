@@ -1,0 +1,36 @@
+<!-- Результаты поиска для приёма (макет 12.3). Товар найден → «Оприходовать» (грузит форму
+     приёма в общий слот #receiving-form). Ничего не найдено → «Создать карточку» с
+     предзаполнением имени запросом. Каждый элемент results — пара (product, low_stock). -->
+{% if results %}
+<table class="search-table">
+    <tbody>
+        {% for p, low_stock in results %}
+        <tr>
+            <td>
+                {{ p.name }}
+                <span class="search-status">· {{ p.status.value }}</span>
+                {% if low_stock %}<span class="low-stock">⚠ ниже минимума</span>{% endif %}
+            </td>
+            <td class="num">{{ p.price_sell | money }} ₽</td>
+            <td class="num">
+                {% if p.quantity_current > 0 %}{{ p.quantity_current | quantity }} {{ p.unit.value }}{% else %}нет в наличии{% endif %}
+            </td>
+            <td class="num">
+                <button type="button" class="receive-btn"
+                        hx-get="/receiving/{{ p.id }}/form"
+                        hx-target="#receiving-form" hx-swap="innerHTML">
+                    Оприходовать
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% elif query %}
+<p class="search-empty">Ничего не найдено.</p>
+<button type="button" class="create-btn"
+        hx-get="/receiving/new?name={{ query | urlencode }}"
+        hx-target="#receiving-form" hx-swap="innerHTML">
+    Создать карточку «{{ query }}»
+</button>
+{% endif %}

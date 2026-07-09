@@ -69,8 +69,8 @@ async def section_panel(
     """Фрагмент раздела, подгружается в панель по HTMX один раз.
 
     «Товары» — реальная панель поиска для карточки (этап 3.1). «Заявки» — панель
-    пополнения (этап 5.3). Остальные разделы — заглушки до своих этапов (Добавить — 6,
-    Чеки — 7).
+    пополнения (этап 5.3). «Добавить» — панель ручного приёма накладной (этап 6.1).
+    «Чеки» — заглушка до этапа 7.
     """
     title = SECTIONS.get(key)
     if title is None:
@@ -87,10 +87,10 @@ async def section_panel(
                 "closed_orders": list_closed_orders(session),
             },
         )
+    if key == "add":
+        return templates.TemplateResponse(request, "add/_panel.html", {})
     return templates.TemplateResponse(
         request,
         "shell/_stub.html",
-        # Флаг test_field — только у «Добавить»: тестовое поле для проверки сохранности
-        # состояния при переключении вкладок (уйдёт на этапе 6).
-        {"key": key, "title": title, "test_field": key == "add"},
+        {"key": key, "title": title, "test_field": False},
     )

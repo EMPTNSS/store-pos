@@ -1,0 +1,70 @@
+{# Общие поля формы создания товара (0.3). Включается и в products/new.html (страница
+   с редиректом), и в receiving/_create_form.html (HTMX-фрагмент приёма, этап 6.1).
+   Разметку полей не дублируем: обёртка (страница/фрагмент) и action — снаружи include.
+   Ожидает в контексте: values (dict), units (список UnitEnum), suppliers (для datalist). #}
+<label for="name">Название товара <span class="required">*</span></label>
+<input type="text" id="name" name="name" required
+       value="{{ values.get('name', '') }}" placeholder="Молоко 2.5%">
+
+<label for="article">Артикул поставщика</label>
+<input type="text" id="article" name="article"
+       value="{{ values.get('article', '') }}" placeholder="AB-12345">
+
+<label for="price_buy">Цена закупки (₽) <span class="required">*</span></label>
+<input type="text" id="price_buy" name="price_buy" required
+       value="{{ values.get('price_buy', '') }}" placeholder="45.00">
+<span class="hint">В рублях с копейками: 45.50 → система сохранит 4550 коп.</span>
+
+<label for="price_sell">Цена продажи (₽) <span class="required">*</span></label>
+<input type="text" id="price_sell" name="price_sell" required
+       value="{{ values.get('price_sell', '') }}" placeholder="69.90">
+
+<label for="quantity">Начальное количество <span class="required">*</span></label>
+<input type="text" id="quantity" name="quantity" required
+       value="{{ values.get('quantity', '') }}" placeholder="10">
+<span class="hint">Целое или дробное (1.5 кг). Должно быть больше 0.</span>
+
+<label for="unit">Единица измерения <span class="required">*</span></label>
+<select id="unit" name="unit" required>
+    <option value="">— выберите —</option>
+    {% for u in units %}
+    <option value="{{ u.value }}"
+            {% if values.get('unit') == u.value %}selected{% endif %}>
+        {{ u.value }}
+    </option>
+    {% endfor %}
+</select>
+
+<label for="min_stock">Минимальный остаток</label>
+<input type="text" id="min_stock" name="min_stock"
+       value="{{ values.get('min_stock', '') }}" placeholder="0">
+<span class="hint">По умолчанию 0 — без отслеживания порога пополнения.</span>
+
+<label for="qr_code">QR / штрихкод (если есть)</label>
+<input type="text" id="qr_code" name="qr_code"
+       value="{{ values.get('qr_code', '') }}" placeholder="4820000000000">
+
+<label>Поставщики</label>
+<span class="hint">Необязательно. Выберите из списка или впишите нового —
+    он создастся при сохранении. Можно добавить несколько.</span>
+
+<datalist id="suppliers-datalist">
+    {% for s in suppliers %}
+    <option value="{{ s.name }}"></option>
+    {% endfor %}
+</datalist>
+
+<div id="supplier-rows">
+    {% for supplier_name in values.get('supplier_names', []) %}
+    {% set value = supplier_name %}
+    {% include "products/_supplier_row.html" %}
+    {% else %}
+    {% include "products/_supplier_row.html" %}
+    {% endfor %}
+</div>
+
+<button type="button" class="btn-add-supplier"
+        hx-get="/products/supplier-row"
+        hx-target="#supplier-rows" hx-swap="beforeend">
+    + добавить поставщика
+</button>
