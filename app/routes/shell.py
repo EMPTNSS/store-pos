@@ -20,6 +20,7 @@ from app.services.order_service import (
     list_closed_orders,
     list_open_orders,
 )
+from app.services.work_day_service import get_open_day
 
 router = APIRouter()
 
@@ -44,11 +45,12 @@ SECTIONS: dict[str, str] = {
 
 
 @router.get("/")
-async def shell_screen(request: Request):
+async def shell_screen(request: Request, session: Session = Depends(get_session)):
     """Страница-рама: ряд вкладок + панель кассы, встроенная на сервере.
 
     Встроенный шаблон кассы (`cashier/_cart.html`) читает живую корзину — передаём тот же
     контекст, что standalone-роут `/cashier`. Логика корзины/продажи не трогается.
+    ``day_open`` управляет строкой смены и показом формы завершения (блокировка кассы 7.1-prep).
     """
     return templates.TemplateResponse(
         request,
@@ -58,6 +60,7 @@ async def shell_screen(request: Request):
             "cart": get_cart().view(),
             "error": None,
             "sale_result": None,
+            "day_open": get_open_day(session) is not None,
         },
     )
 

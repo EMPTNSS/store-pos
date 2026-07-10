@@ -146,6 +146,9 @@ class TestCustomerRoutes:
         assert "Итого" in resp.text   # крупный итог
 
     def test_state_thanks_after_sale(self, db, client):
+        from app.services.work_day_service import open_day
+
+        open_day(db)  # продажа возможна только в открытую смену (guard 7.1-prep)
         product = _make_product(db, quantity="50")
         client.post("/cashier/items", data={"numeric_code": product.numeric_code})
         client.post("/cashier/complete", data={"payment_method": "cash"})

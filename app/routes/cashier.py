@@ -21,6 +21,7 @@ from app.services.money import format_money
 from app.services.product_search import search_products
 from app.services.receipt_render import render_receipt_text
 from app.services.sale import complete_sale
+from app.services.work_day_service import get_open_day
 
 # Отдельный экземпляр Jinja-окружения с фильтром форматирования денег.
 from fastapi.templating import Jinja2Templates
@@ -78,15 +79,23 @@ def _render(request: Request, name: str, context: dict, status_code: int = 200):
 
 def _cart_context(
     request: Request,
+    session: Session,
     error: Optional[str] = None,
     sale_result: Optional[dict] = None,
 ) -> dict:
-    return {"cart": get_cart().view(), "error": error, "sale_result": sale_result}
+    # day_open управляет показом формы завершения в _cart.html: без открытой смены
+    # вместо кнопки «Завершить продажу» рендерится заметка (guard дублируется на сервисе).
+    return {
+        "cart": get_cart().view(),
+        "error": error,
+        "sale_result": sale_result,
+        "day_open": get_open_day(session) is not None,
+    }
 
 
 @router.get("/cashier")
-async def cashier_screen(request: Request):
-    return _render(request, "cashier/index.html", _cart_context(request))
+async def cashier_screen(request: Request, session: Session = Depends(get_session)):
+    return _render(request, "cashier/index.html", _cart_context(request, session))
 
 
 @router.get("/cashier/search")
@@ -125,7 +134,7 @@ async def add_item(
             error = f"Товар с кодом {code} не найден"
         else:
             get_cart().add(product)
-    return _render(request, "cashier/_cart.html", _cart_context(request, error))
+    return _render(request, "cashier/_cart.html", _cart_context(request, session, error))
 
 
 @router.post("/cashier/items/{line_id}/quantity")
@@ -133,6 +142,7 @@ async def change_quantity(
     request: Request,
     line_id: int,
     quantity: str = Form(...),
+    session: Session = Depends(get_session),
 ):
     error = None
     try:
@@ -142,19 +152,21 @@ async def change_quantity(
     else:
         if get_cart().set_quantity(line_id, data.quantity) is None:
             error = "Строка чека не найдена"
-    return _render(request, "cashier/_cart.html", _cart_context(request, error))
+    return _render(request, "cashier/_cart.html", _cart_context(request, session, error))
 
 
 @router.post("/cashier/items/{line_id}/delete")
-async def delete_item(request: Request, line_id: int):
+async def delete_item(
+    request: Request, line_id: int, session: Session = Depends(get_session)
+):
     get_cart().remove(line_id)
-    return _render(request, "cashier/_cart.html", _cart_context(request))
+    return _render(request, "cashier/_cart.html", _cart_context(request, session))
 
 
 @router.post("/cashier/clear")
-async def clear_cart(request: Request):
+async def clear_cart(request: Request, session: Session = Depends(get_session)):
     get_cart().clear()
-    return _render(request, "cashier/_cart.html", _cart_context(request))
+    return _render(request, "cashier/_cart.html", _cart_context(request, session))
 
 
 @router.post("/cashier/complete")
@@ -169,12 +181,12 @@ async def complete(
         data = SaleComplete(payment_method=payment_method, print_invoice=print_invoice)
     except ValidationError:
         error = "Выберите способ оплаты"
-        return _render(request, "cashier/_cart.html", _cart_context(request, error))
+        return _render(request, "cashier/_cart.html", _cart_context(request, session, error))
 
     try:
         receipt = complete_sale(session, get_cart(), data.payment_method)
     except ValueError as exc:
-        return _render(request, "cashier/_cart.html", _cart_context(request, str(exc)))
+        return _render(request, "cashier/_cart.html", _cart_context(request, session, str(exc)))
 
     # Отметить продажу для экрана покупателя (2.3): благодарность после очистки корзины.
     # Best-effort и вне транзакции — продажа уже зафиксирована, экран вторичен.
@@ -201,5 +213,7 @@ async def complete(
         "invoice_printed": invoice_printed,
     }
     return _render(
-        request, "cashier/_cart.html", _cart_context(request, sale_result=sale_result)
+        request,
+        "cashier/_cart.html",
+        _cart_context(request, session, sale_result=sale_result),
     )

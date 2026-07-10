@@ -13,6 +13,7 @@ from app.services.return_cart import ReturnCart, get_return_cart
 from app.services.return_service import complete_return
 from app.services.sale import complete_sale
 from app.services.cart import Cart
+from app.services.work_day_service import close_day, get_open_day, open_day
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +22,13 @@ def _reset_return_cart():
     get_return_cart().clear()
     yield
     get_return_cart().clear()
+
+
+@pytest.fixture(autouse=True)
+def _open_work_day(db):
+    """Возврат оформляется только в открытую смену (guard 7.1-prep): открываем день на тест."""
+    open_day(db)
+    yield
 
 
 def _make_product(db, **overrides):
@@ -49,6 +57,29 @@ class TestCompleteReturn:
         assert receipt.datetime is not None
         assert receipt.payment_method == PaymentMethod.cash
         assert receipt.total == view.total == 8650  # без округления вверх до ₽
+
+    def test_return_bound_to_open_day(self, db):
+        p = _make_product(db, price_sell="20.00")
+        cart = ReturnCart()
+        cart.add(p, Decimal("1"))
+        receipt = complete_return(db, cart, PaymentMethod.cash)
+
+        day = get_open_day(db)
+        assert day is not None
+        assert receipt.work_day_id == day.id
+
+    def test_return_rejected_without_open_day(self, db):
+        close_day(db)  # смена, открытая autouse-фикстурой, закрыта
+        p = _make_product(db, price_sell="20.00")
+        cart = ReturnCart()
+        cart.add(p, Decimal("2"))
+
+        with pytest.raises(ValueError):
+            complete_return(db, cart, PaymentMethod.cash)
+
+        # Возврат не создан, черновик цел (guard сработал до любых мутаций).
+        assert db.exec(select(ReturnReceipt)).all() == []
+        assert len(cart.view().lines) == 1
 
     def test_total_invariant_no_round_up(self, db):
         # Итог с копейками сохраняется как есть, а не поднимается до рубля.

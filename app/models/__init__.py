@@ -15,6 +15,7 @@ from app.models.return_receipt import (
     ReturnReceiptLine,
 )
 from app.models.supplier import ProductSupplierLink, Supplier, SupplierStatus
+from app.models.work_day import WorkDay, WorkDayStatus
 
 __all__ = [
     "Product",
@@ -37,4 +38,6 @@ __all__ = [
     "Supplier",
     "SupplierStatus",
     "ProductSupplierLink",
+    "WorkDay",
+    "WorkDayStatus",
 ]

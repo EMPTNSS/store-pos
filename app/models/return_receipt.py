@@ -33,6 +33,8 @@ class ReturnReceipt(SQLModel, table=True):
     total: int  # итог возврата в копейках = Σ строк (без округления вверх до ₽)
     # Чек-первоисточник (4.2). NULL — свободный возврат без привязки (4.1).
     source_receipt_id: Optional[int] = Field(default=None, foreign_key="receipt.id")
+    # Смена, в которой оформлен возврат (основа под 7.1). Nullable: строки до миграции — NULL.
+    work_day_id: Optional[int] = Field(default=None, foreign_key="work_day.id", index=True)
 
 
 class ReturnReceiptLine(SQLModel, table=True):

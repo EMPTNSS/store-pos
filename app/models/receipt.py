@@ -24,6 +24,8 @@ class Receipt(SQLModel, table=True):
     subtotal: int  # точная сумма строк в копейках
     rounding: int  # надбавка округления итога до целой ₽ (копейки, ≥ 0)
     total: int     # итог к оплате в копейках (subtotal + rounding)
+    # Смена, в которой пробит чек (основа под 7.1). Nullable: строки до этой миграции — NULL.
+    work_day_id: Optional[int] = Field(default=None, foreign_key="work_day.id", index=True)
 
 
 class ReceiptLine(SQLModel, table=True):

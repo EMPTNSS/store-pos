@@ -24,6 +24,7 @@ from app.services.return_service import (
     returnable_lines,
 )
 from app.services.sale import complete_sale
+from app.services.work_day_service import open_day
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +33,13 @@ def _reset_return_cart():
     get_return_cart().clear()
     yield
     get_return_cart().clear()
+
+
+@pytest.fixture(autouse=True)
+def _open_work_day(db):
+    """Продажа/возврат возможны только в открытую смену (guard 7.1-prep): открываем день."""
+    open_day(db)
+    yield
 
 
 def _make_product(db, **overrides):

@@ -8,6 +8,7 @@
 import datetime as _dt
 from decimal import Decimal
 
+import pytest
 from sqlmodel import Session
 
 from app.models.movement import OperationType
@@ -25,6 +26,14 @@ from app.services.product_service import (
     product_stats,
 )
 from app.services.sale import complete_sale
+from app.services.work_day_service import open_day
+
+
+@pytest.fixture(autouse=True)
+def _open_work_day(db):
+    """Продажа возможна только в открытую смену (guard 7.1-prep): открываем день на тест."""
+    open_day(db)
+    yield
 
 
 def _data(**overrides) -> ProductCreate:

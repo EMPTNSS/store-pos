@@ -11,6 +11,7 @@ from app.services.cart import Cart, get_cart
 from app.services.money import round_total_up
 from app.services.product_service import create_product
 from app.services.sale import complete_sale
+from app.services.work_day_service import close_day, open_day
 
 
 @pytest.fixture(autouse=True)
@@ -19,6 +20,16 @@ def _reset_cart():
     get_cart().clear()
     yield
     get_cart().clear()
+
+
+@pytest.fixture(autouse=True)
+def _open_work_day(db):
+    """Продажа возможна только в открытую смену (guard 7.1-prep): открываем день на тест.
+
+    Тесты, проверяющие поведение без смены, закрывают день явно через ``close_day(db)``.
+    """
+    open_day(db)
+    yield
 
 
 @pytest.fixture(autouse=True)
@@ -206,6 +217,32 @@ class TestCompleteSale:
         assert r_cash.payment_method == PaymentMethod.cash
         assert r_card.payment_method == PaymentMethod.card
 
+    def test_receipt_bound_to_open_day(self, db):
+        from app.services.work_day_service import get_open_day
+
+        p = _make_product(db, quantity="50")
+        cart = Cart()
+        cart.add(p, Decimal("1"))
+        receipt = complete_sale(db, cart, PaymentMethod.cash)
+
+        day = get_open_day(db)
+        assert day is not None
+        assert receipt.work_day_id == day.id
+
+    def test_sale_rejected_without_open_day(self, db):
+        # Закрываем смену, открытую autouse-фикстурой → продажа недоступна.
+        close_day(db)
+        p = _make_product(db, quantity="50")
+        cart = Cart()
+        cart.add(p, Decimal("2"))
+
+        with pytest.raises(ValueError):
+            complete_sale(db, cart, PaymentMethod.cash)
+
+        # Чек не создан, а корзина цела (guard сработал до любых мутаций).
+        assert db.exec(select(Receipt)).all() == []
+        assert len(cart.view().lines) == 1
+
 
 # --- HTTP-слой ------------------------------------------------------------
 
@@ -231,6 +268,18 @@ class TestCompleteRoute:
         assert resp.status_code == 200
         assert "Чек пуст" in resp.text
         assert db.exec(select(Receipt)).all() == []
+
+    def test_complete_rejected_without_open_day(self, db, client):
+        close_day(db)  # смена, открытая autouse-фикстурой, закрыта
+        product = _make_product(db, quantity="50")
+        client.post("/cashier/items", data={"numeric_code": product.numeric_code})
+
+        resp = client.post("/cashier/complete", data={"payment_method": "cash"})
+        assert resp.status_code == 200
+        assert "Рабочий день не открыт" in resp.text
+        assert db.exec(select(Receipt)).all() == []
+        # корзина цела: строка на месте
+        assert product.name in resp.text
 
     def test_complete_invalid_payment(self, db, client):
         product = _make_product(db, quantity="50")

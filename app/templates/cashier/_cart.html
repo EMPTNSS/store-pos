@@ -65,6 +65,7 @@
     <div class="grand-total">Итого: {{ cart.grand_total | money }} ₽</div>
 </div>
 
+{% if day_open %}
 <form class="checkout" hx-post="/cashier/complete" hx-target="#cart" hx-swap="innerHTML">
     <div class="payment">
         <span>Способ оплаты:</span>
@@ -76,6 +77,9 @@
     </div>
     <button type="submit" class="btn btn-complete">Завершить продажу</button>
 </form>
+{% else %}
+<p class="day-closed-note">Рабочий день не открыт — начните смену, чтобы проводить продажи.</p>
+{% endif %}
 
 <div class="actions">
     <form class="inline-form" hx-post="/cashier/clear" hx-target="#cart" hx-swap="innerHTML">

@@ -24,6 +24,7 @@ from app.models.return_receipt import (
     ReturnReceiptLine,
 )
 from app.services.return_cart import ReturnCart
+from app.services.work_day_service import get_open_day
 
 
 def already_returned(session: Session, source_line_id: int) -> Decimal:
@@ -78,6 +79,12 @@ def complete_return(
     if not view.lines:
         raise ValueError("Возврат пуст")
 
+    # Возврат оформляется только в открытую смену (основа под 7.1). Проверяем до любых
+    # вставок в БД — черновик возврата остаётся нетронутым.
+    day = get_open_day(session)
+    if day is None:
+        raise ValueError("Рабочий день не открыт")
+
     # Инвариант перевозврата (4.2): по каждой привязанной строке чека Σ возвращённого +
     # текущий возврат не превышает проданного. Проверяем до любых вставок в БД.
     for line in view.lines:
@@ -107,6 +114,7 @@ def complete_return(
         payment_method=payment_method,
         total=view.total,
         source_receipt_id=cart.source_receipt_id,
+        work_day_id=day.id,
     )
     session.add(receipt)
     session.flush()  # получить receipt.id до вставки строк

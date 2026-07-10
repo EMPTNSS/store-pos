@@ -44,6 +44,20 @@
     .return-close:hover { color: #c0392b; }
     .return-modal-footer { margin-top: 16px; text-align: right; }
 
+    /* Строка управления сменой (рабочий день). */
+    .day-status { display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+        padding: 8px 12px; margin-bottom: 12px; border-radius: 6px; font-size: 0.95rem; }
+    .day-status.is-open { background: #eafaf1; border: 1px solid #a7e0c0; }
+    .day-status.is-closed { background: #fef3c7; border: 1px solid #fcd34d; }
+    .day-status .day-badge { font-weight: 600; color: #374151; }
+    .day-status .day-error { color: #b91c1c; }
+    .btn-day { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;
+        color: #fff; font-size: 0.9rem; }
+    .btn-day-open { background: #27ae60; }
+    .btn-day-close { background: #b45309; }
+    .day-closed-note { margin-top: 16px; padding: 12px 16px; background: #fef3c7;
+        border: 1px solid #fcd34d; border-radius: 4px; color: #92400e; }
+
     /* Блок «Возврат по чеку» (4.2): поиск чека и его read-only строки. */
     .receipt-lookup-box { margin-bottom: 12px; }
     .receipt-lookup-box > label { display: block; font-weight: 600; margin-bottom: 4px; }
@@ -52,6 +66,9 @@
     .return-sep { border: none; border-top: 1px dashed #e5e7eb; margin: 16px 0; }
     .price-locked { color: #9ca3af; font-size: 0.85em; }
 </style>
+
+<!-- Строка управления сменой: статус дня + начать/завершить (7.1-prep). -->
+{% include "shell/_day_status.html" %}
 
 <!-- Ряд открытых вкладок. «Касса» — постоянная, без крестика (не закрывается). -->
 <div class="tabs" id="tabs">

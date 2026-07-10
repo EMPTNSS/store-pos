@@ -12,6 +12,7 @@ from app.routes.products import router as products_router
 from app.routes.receiving import router as receiving_router
 from app.routes.returns import router as returns_router
 from app.routes.shell import router as shell_router
+from app.routes.work_day import router as work_day_router
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
@@ -32,6 +33,7 @@ def create_app() -> FastAPI:
     application.include_router(cashier_router)
     application.include_router(returns_router)
     application.include_router(customer_router)
+    application.include_router(work_day_router)
 
     @application.get("/health")
     def health():

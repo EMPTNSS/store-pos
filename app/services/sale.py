@@ -18,6 +18,7 @@ from app.models.receipt import (
     ReceiptNumberCounter,
 )
 from app.services.cart import Cart
+from app.services.work_day_service import get_open_day
 
 
 def complete_sale(
@@ -25,12 +26,19 @@ def complete_sale(
 ) -> Receipt:
     """Завершить продажу текущего чека одной транзакцией.
 
-    Возвращает сохранённый ``Receipt``. Пустой чек продать нельзя → ``ValueError``.
-    Корзина очищается только после успешного commit (при ошибке чек не теряется).
+    Возвращает сохранённый ``Receipt``. Пустой чек или отсутствие открытой смены →
+    ``ValueError`` до любых мутаций (корзина цела). Корзина очищается только после
+    успешного commit (при ошибке чек не теряется).
     """
     view = cart.view()
     if not view.lines:
         raise ValueError("Чек пуст")
+
+    # Продажа возможна только в открытую смену (основа под 7.1). Проверяем до любых
+    # мутаций БД и счётчика — корзина остаётся нетронутой (как при пустом чеке).
+    day = get_open_day(session)
+    if day is None:
+        raise ValueError("Рабочий день не открыт")
 
     now = _dt.datetime.now()
 
@@ -51,6 +59,7 @@ def complete_sale(
         subtotal=view.subtotal,
         rounding=view.rounding,
         total=view.grand_total,
+        work_day_id=day.id,
     )
     session.add(receipt)
     session.flush()  # получить receipt.id до вставки строк
