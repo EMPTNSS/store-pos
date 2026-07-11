@@ -171,6 +171,24 @@
         });
     }
 
+    // Открыть/обновить секцию «Чеки за день» (7.1). После закрытия смены строка статуса
+    // ведёт сюда: если вкладка уже открыта — переактивируем и перезагружаем содержимое,
+    // чтобы свежий документ дня (наверху списка) был виден без ручного обновления.
+    function openReports() {
+        var url = "/panels/receipts";
+        if (open.receipts) {
+            activate("receipts");
+            var panel = panelEl("receipts");
+            if (panel) window.htmx.ajax("GET", url, { target: panel, swap: "innerHTML" });
+            return;
+        }
+        openSection("receipts", "Чеки за день", url);
+    }
+
+    // Тонкий публичный хук для фрагментов, приходящих по HTMX (строка статуса смены).
+    // Только навигация по вкладкам — никакой бизнес-логики (принцип 2.5).
+    window.posShell = { openSection: openSection, openReports: openReports };
+
     // Кнопки-лаунчеры разделов.
     var buttons = launcher.querySelectorAll("button[data-key]");
     for (var i = 0; i < buttons.length; i++) {

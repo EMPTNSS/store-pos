@@ -1,0 +1,20 @@
+<!-- Список сохранённых документов дня (этап 7.1, макет разд. 23.5). Фрагмент #reports-list.
+     Клик по документу подменяет #report-view. Активный — текущий выбранный (report). -->
+{% if reports %}
+<ul class="report-items">
+    {% for r in reports %}
+    <li>
+        <button type="button"
+                class="report-link{% if report and r.id == report.id %} active{% endif %}"
+                hx-get="/day/reports/{{ r.id }}"
+                hx-target="#report-view" hx-swap="innerHTML">
+            <span class="report-link-title">№{{ r.report_number }}</span>
+            <span class="report-link-date">{{ r.closed_at.strftime('%d.%m.%Y %H:%M') }}</span>
+            <span class="report-link-sum">{{ r.net_sales | money }} ₽</span>
+        </button>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="muted">Пока нет сохранённых документов.</p>
+{% endif %}

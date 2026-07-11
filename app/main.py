@@ -10,6 +10,7 @@ from app.routes.customer import router as customer_router
 from app.routes.orders import router as orders_router
 from app.routes.products import router as products_router
 from app.routes.receiving import router as receiving_router
+from app.routes.reports import router as reports_router
 from app.routes.returns import router as returns_router
 from app.routes.shell import router as shell_router
 from app.routes.work_day import router as work_day_router
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     application.include_router(returns_router)
     application.include_router(customer_router)
     application.include_router(work_day_router)
+    application.include_router(reports_router)
 
     @application.get("/health")
     def health():

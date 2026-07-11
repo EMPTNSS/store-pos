@@ -1,0 +1,90 @@
+<!-- Документ завершения рабочего дня (этап 7.1, макет разд. 23). Фрагмент: рендерится в
+     панели «Чеки за день» и подменяется в #report-view при выборе другого документа.
+     Стили — в reports/_panel.html (панель грузится один раз, style остаётся в DOM). -->
+<div class="day-document">
+    <h2>Документ завершения дня №{{ report.report_number }}</h2>
+    <p class="doc-period">
+        Смена: {{ report.opened_at.strftime('%d.%m.%Y %H:%M') }}
+        — {{ report.closed_at.strftime('%d.%m.%Y %H:%M') }}
+    </p>
+
+    <h3>Итоги по дню</h3>
+    <table class="doc-totals">
+        <tbody>
+            <tr>
+                <td>Продажи (валовые)</td>
+                <td class="num">{{ report.sales_total | money }} ₽</td>
+            </tr>
+            <tr>
+                <td>Возвраты</td>
+                <td class="num">− {{ report.returns_total | money }} ₽</td>
+            </tr>
+            <tr class="strong">
+                <td>Итог продаж (нетто)</td>
+                <td class="num">{{ report.net_sales | money }} ₽</td>
+            </tr>
+            <tr>
+                <td>Себестоимость (нетто)</td>
+                <td class="num">{{ (report.cogs_sold - report.cogs_returned) | money }} ₽</td>
+            </tr>
+            <tr class="strong profit">
+                <td>Чистыми (прибыль)</td>
+                <td class="num">{{ report.net_profit | money }} ₽</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Дополнительно</h3>
+    <table class="doc-extra">
+        <tbody>
+            <tr>
+                <td>Чеков продажи</td>
+                <td class="num">{{ report.sales_count }}</td>
+            </tr>
+            <tr>
+                <td>Чеков возврата</td>
+                <td class="num">{{ report.returns_count }}</td>
+            </tr>
+            <tr>
+                <td>Наличными (продажи / возвраты)</td>
+                <td class="num">{{ report.cash_sales | money }} / {{ report.cash_returns | money }} ₽</td>
+            </tr>
+            <tr>
+                <td>Безналичными (продажи / возвраты)</td>
+                <td class="num">{{ report.card_sales | money }} / {{ report.card_returns | money }} ₽</td>
+            </tr>
+            <tr>
+                <td>Округление (надбавка)</td>
+                <td class="num">{{ report.rounding_total | money }} ₽</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Проданные товары</h3>
+    {% if lines %}
+    <table class="doc-lines">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th class="num">Продано</th>
+                <th class="num">Сумма</th>
+                <th class="num">Себестоимость</th>
+                <th class="num">Прибыль</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in lines %}
+            <tr>
+                <td>{{ line.name }}</td>
+                <td class="num">{{ line.quantity_sold | quantity }} {{ line.unit.value }}</td>
+                <td class="num">{{ line.sum_sold | money }} ₽</td>
+                <td class="num">{{ line.cogs | money }} ₽</td>
+                <td class="num">{{ line.profit | money }} ₽</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Продаж за смену не было.</p>
+    {% endif %}
+</div>

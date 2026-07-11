@@ -17,4 +17,12 @@
         <button type="submit" class="btn-day btn-day-open">Начать рабочий день</button>
     </form>
     {% endif %}
+    {% if report %}
+    {# Документ дня сформирован при закрытии (7.1) — ведём продавца к его просмотру. #}
+    <span class="day-report-note">Документ дня №{{ report.report_number }} сформирован.</span>
+    <button type="button" class="btn-day btn-day-report"
+            onclick="window.posShell && window.posShell.openReports()">
+        Открыть документ
+    </button>
+    {% endif %}
 </div>

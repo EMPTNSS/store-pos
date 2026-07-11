@@ -1,4 +1,5 @@
 from app.models.counter import ProductCodeCounter
+from app.models.day_report import DayReport, DayReportLine, DayReportNumberCounter
 from app.models.movement import Movement, OperationType
 from app.models.order import Order, OrderLine, OrderStatus
 from app.models.price_history import PriceHistory
@@ -28,6 +29,9 @@ __all__ = [
     "OrderStatus",
     "PriceHistory",
     "ProductCodeCounter",
+    "DayReport",
+    "DayReportLine",
+    "DayReportNumberCounter",
     "PaymentMethod",
     "Receipt",
     "ReceiptLine",

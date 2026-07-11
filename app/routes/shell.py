@@ -15,6 +15,7 @@ from sqlmodel import Session
 from app.database import get_session
 from app.services.cart import get_cart
 from app.services.money import format_money, format_quantity
+from app.services.day_report_service import day_report_lines, list_day_reports
 from app.services.order_service import (
     list_candidates,
     list_closed_orders,
@@ -73,7 +74,7 @@ async def section_panel(
 
     «Товары» — реальная панель поиска для карточки (этап 3.1). «Заявки» — панель
     пополнения (этап 5.3). «Добавить» — панель ручного приёма накладной (этап 6.1).
-    «Чеки» — заглушка до этапа 7.
+    «Чеки за день» — документы завершения дня (этап 7.1).
     """
     title = SECTIONS.get(key)
     if title is None:
@@ -92,6 +93,20 @@ async def section_panel(
         )
     if key == "add":
         return templates.TemplateResponse(request, "add/_panel.html", {})
+    if key == "receipts":
+        # «Чеки за день» — документы завершения дня (7.1). Свежий документ (наверху списка)
+        # разворачиваем сразу, чтобы после закрытия смены его было видно без лишнего клика.
+        reports = list_day_reports(session)
+        current = reports[0] if reports else None
+        return templates.TemplateResponse(
+            request,
+            "reports/_panel.html",
+            {
+                "reports": reports,
+                "report": current,
+                "lines": day_report_lines(session, current.id) if current else [],
+            },
+        )
     return templates.TemplateResponse(
         request,
         "shell/_stub.html",

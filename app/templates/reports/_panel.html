@@ -1,0 +1,54 @@
+<!-- Панель раздела «Чеки за день» (этап 7.1, макет разд. 23). Загружается в раму по HTMX
+     один раз (см. shell.js). Слева — список сохранённых документов (#reports-list), справа —
+     просмотр выбранного (#report-view). Свежий документ (наверху) развёрнут сразу. -->
+<style>
+    .reports-panel h1 { margin-bottom: 4px; }
+    .reports-panel .muted { color: #6b7280; }
+    .reports-panel .reports-layout { display: flex; gap: 20px; align-items: flex-start;
+        flex-wrap: wrap; margin-top: 12px; }
+    .reports-panel .reports-list { flex: 0 0 240px; }
+    .reports-panel .report-view { flex: 1 1 380px; min-width: 320px; }
+
+    .reports-panel .report-items { list-style: none; margin: 0; padding: 0; }
+    .reports-panel .report-items li { margin-bottom: 6px; }
+    .reports-panel .report-link { display: flex; flex-direction: column; gap: 2px; width: 100%;
+        text-align: left; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px;
+        background: #f9fafb; cursor: pointer; font-size: 0.9rem; }
+    .reports-panel .report-link:hover { background: #f3f4f6; }
+    .reports-panel .report-link.active { border-color: #2563eb; background: #eff6ff; }
+    .reports-panel .report-link-title { font-weight: 600; color: #111; }
+    .reports-panel .report-link-date { color: #6b7280; font-size: 0.82rem; }
+    .reports-panel .report-link-sum { color: #374151; }
+
+    .reports-panel .day-document h2 { margin: 0 0 4px; font-size: 1.2rem; }
+    .reports-panel .day-document h3 { margin: 16px 0 6px; font-size: 1rem; color: #374151; }
+    .reports-panel .doc-period { color: #6b7280; margin: 0 0 8px; }
+    .reports-panel table { border-collapse: collapse; width: 100%; max-width: 560px; }
+    .reports-panel .doc-totals td, .reports-panel .doc-extra td { padding: 4px 10px;
+        border-bottom: 1px solid #f0f0f0; }
+    .reports-panel td.num, .reports-panel th.num { text-align: right; white-space: nowrap; }
+    .reports-panel .doc-totals tr.strong td { font-weight: 600; }
+    .reports-panel .doc-totals tr.profit td { color: #15803d; font-size: 1.05rem; }
+    .reports-panel .doc-lines th, .reports-panel .doc-lines td { padding: 4px 10px;
+        border-bottom: 1px solid #eee; text-align: left; }
+    .reports-panel .doc-lines thead th { color: #6b7280; font-weight: 600; font-size: 0.85rem; }
+</style>
+
+<div class="reports-panel">
+    <h1>Чеки за день</h1>
+    <p class="muted">Документы завершения рабочего дня (макет разд. 23).</p>
+
+    <div class="reports-layout">
+        <div class="reports-list" id="reports-list">
+            {% include "reports/_list.html" %}
+        </div>
+        <div class="report-view" id="report-view">
+            {% if report %}
+                {% include "reports/_document.html" %}
+            {% else %}
+                <p class="muted">Нет сохранённых документов. Завершите рабочий день, чтобы
+                    сформировать первый.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
