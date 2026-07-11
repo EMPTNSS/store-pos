@@ -4,31 +4,65 @@
 
 {% block content %}
 <style>
-    /* Рама вкладок — минимальный функциональный каркас (единый визуальный слой — позже). */
-    .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid #e5e7eb;
-        margin-bottom: 8px; }
-    .tab { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
-        border: 1px solid #e5e7eb; border-bottom: none; border-radius: 6px 6px 0 0;
-        background: #f3f4f6; color: #374151; cursor: pointer; font-size: 0.95rem; }
-    .tab.active { background: #fff; color: #111; font-weight: 600;
-        box-shadow: inset 0 -2px 0 #2563eb; }
+    /* Баннер начала дня — во всю ширину, над вкладками. */
+    .day-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+        width: 100%; padding: 12px 16px; background: #FFFBEB;
+        border-bottom: 1px solid #FCD34D; color: #92400E; }
+    .day-banner-text { font-weight: 600; }
+    .day-banner-form { margin: 0; }
+    .btn-day-start { padding: 8px 18px; background: #2563eb; color: #fff; border: none;
+        border-radius: 4px; font-size: 0.95rem; cursor: pointer; }
+    .btn-day-start:hover { background: #1d4ed8; }
+    .day-banner-note { margin-left: auto; font-weight: 600; }
+    .btn-day-doc { padding: 6px 14px; background: #92400E; color: #fff; border: none;
+        border-radius: 4px; font-size: 0.9rem; cursor: pointer; }
+
+    /* Отступы содержимого под баннером (сам баннер — вровень с краями). */
+    .shell-body { padding: 0 16px; }
+
+    /* Вкладки — как браузерные табы: закруглены сверху, без нижней границы,
+       активная белая, прижаты к левому краю (не растянуты, не по центру). */
+    .tabs { display: flex; gap: 4px; margin: 0; padding: 8px 0 0; }
+    .tab { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+        border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0;
+        background: #eef0f3; color: #374151; cursor: pointer; font-size: 0.95rem; }
+    .tab.active { background: #fff; color: #111; font-weight: 600; }
     .tab .close { border: none; background: none; color: #9ca3af; cursor: pointer;
         font-size: 1rem; line-height: 1; padding: 0 2px; }
     .tab .close:hover { color: #c0392b; }
 
-    .launcher { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-    .launcher button { padding: 8px 14px; background: #eef2ff; color: #3730a3;
-        border: 1px solid #c7d2fe; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
-    .launcher button:hover { background: #e0e7ff; }
+    /* Основная раскладка: касса слева (2/3), колонка разделов справа (1/3). */
+    .cashier-layout { display: flex; gap: 16px; align-items: stretch;
+        min-height: calc(100vh - 150px); border-top: 1px solid #e5e7eb; padding-top: 16px; }
+    .cashier-main { flex: 2; min-width: 0; padding-right: 16px;
+        border-right: 1px solid #D9DBE1; }
+    .cashier-side { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+    /* Кнопки разделов — вертикальная колонка. Иконка (инлайн SVG) слева от текста. */
+    .launcher { display: flex; flex-direction: column; gap: 10px; }
+    .btn-side { height: 64px; width: 100%; padding: 0 16px; font-size: 15px;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        background: #fff; border: 1px solid #D9DBE1; border-radius: 6px; color: #1a1a1a;
+        cursor: pointer; }
+    .btn-side:hover { background: #f8f9fb; }
+    .btn-side svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    /* Нижняя группа: завершить день / возврат — прижата к низу колонки,
+       отделена разделителем от блока обычных кнопок. */
+    .side-day { margin-top: auto; padding-top: 10px; border-top: 1px solid #D9DBE1;
+        display: flex; flex-direction: column; gap: 10px; }
+    .day-close-form { margin: 0; }
+    /* Приглушённо-жёлтая (warning). Специфичность .btn-side.btn-day-finish перебивает
+       общий стиль button[type="submit"] из base.html — без синего акцента. */
+    .btn-side.btn-day-finish { background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E; }
+    .btn-side.btn-day-finish:hover:not(:disabled) { background: #fef3c7; }
+    .btn-side.btn-day-finish:disabled { opacity: 0.6; cursor: default; }
+    .btn-return { background: #fff0f0; border-color: #e88; color: #b00; }
+    .btn-return:hover { background: #fee2e2; }
 
     .panel { display: none; }
     .panel.active { display: block; }
     .panel-stub { color: #6b7280; padding: 24px 0; }
-
-    /* Кнопка возврата — разовое действие, открывает модалку (2.5), не вкладку. */
-    .launcher button.return-launch { background: #fef2f2; color: #b91c1c;
-        border-color: #fecaca; }
-    .launcher button.return-launch:hover { background: #fee2e2; }
 
     /* Модалка возврата — оверлей поверх кассы. */
     .modal-overlay { display: none; position: fixed; inset: 0; z-index: 100;
@@ -44,20 +78,6 @@
     .return-close:hover { color: #c0392b; }
     .return-modal-footer { margin-top: 16px; text-align: right; }
 
-    /* Строка управления сменой (рабочий день). */
-    .day-status { display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
-        padding: 8px 12px; margin-bottom: 12px; border-radius: 6px; font-size: 0.95rem; }
-    .day-status.is-open { background: #eafaf1; border: 1px solid #a7e0c0; }
-    .day-status.is-closed { background: #fef3c7; border: 1px solid #fcd34d; }
-    .day-status .day-badge { font-weight: 600; color: #374151; }
-    .day-status .day-error { color: #b91c1c; }
-    .btn-day { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;
-        color: #fff; font-size: 0.9rem; }
-    .btn-day-open { background: #27ae60; }
-    .btn-day-close { background: #b45309; }
-    .day-closed-note { margin-top: 16px; padding: 12px 16px; background: #fef3c7;
-        border: 1px solid #fcd34d; border-radius: 4px; color: #92400e; }
-
     /* Блок «Возврат по чеку» (4.2): поиск чека и его read-only строки. */
     .receipt-lookup-box { margin-bottom: 12px; }
     .receipt-lookup-box > label { display: block; font-weight: 600; margin-bottom: 4px; }
@@ -67,29 +87,91 @@
     .price-locked { color: #9ca3af; font-size: 0.85em; }
 </style>
 
-<!-- Строка управления сменой: статус дня + начать/завершить (7.1-prep). -->
-{% include "shell/_day_status.html" %}
+<!-- Баннер начала дня: во всю ширину, над вкладками. Виден только пока день закрыт. -->
+{% include "shell/_day_banner.html" %}
 
-<!-- Ряд открытых вкладок. «Касса» — постоянная, без крестика (не закрывается). -->
-<div class="tabs" id="tabs">
-    <div class="tab active" data-key="cashier">Касса</div>
-</div>
+<div class="shell-body">
+    <!-- Ряд открытых вкладок. «Касса» — постоянная, без крестика (не закрывается). -->
+    <div class="tabs" id="tabs">
+        <div class="tab active" data-key="cashier">Касса</div>
+    </div>
 
-<!-- Кнопки рабочих разделов: открывают/активируют вкладку (одна на раздел). -->
-<div class="launcher" id="launcher">
-    {% for key, title in sections.items() %}
-    <button type="button" data-key="{{ key }}" data-title="{{ title }}"
-            data-url="/panels/{{ key }}">{{ title }}</button>
-    {% endfor %}
-    <!-- Возврат — модалка поверх (2.5), не вкладка. Вне цикла разделов. -->
-    <button type="button" id="return-btn" class="return-launch">Возврат</button>
-</div>
+    <!-- Основная раскладка: слева касса, справа колонка разделов. -->
+    <div class="cashier-layout">
+        <!-- Левая панель (2/3): содержимое кассы. Панели живут в DOM. -->
+        <div class="cashier-main">
+            <div id="panels">
+                <section class="panel active" id="panel-cashier">
+                    {% include "cashier/_screen.html" %}
+                </section>
+            </div>
+        </div>
 
-<!-- Панели. Касса встроена на сервере и всегда живёт в DOM (стартовая вкладка). -->
-<div id="panels">
-    <section class="panel active" id="panel-cashier">
-        {% include "cashier/_screen.html" %}
-    </section>
+        <!-- Правая колонка (1/3): кнопки разделов + управление днём внизу. -->
+        <div class="cashier-side">
+            <!-- Кнопки рабочих разделов: открывают/активируют вкладку (одна на раздел). -->
+            <div class="launcher" id="launcher">
+                {% for key, title in sections.items() %}
+                <button type="button" class="btn-side" data-key="{{ key }}"
+                        data-title="{{ title }}" data-url="/panels/{{ key }}">
+                    {% if key == 'products' %}
+                    {# Товары — коробка/пакет #}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3l8 4v10l-8 4-8-4V7z"/><path d="M12 12l8-5"/>
+                        <path d="M12 12v9"/><path d="M12 12L4 7"/>
+                    </svg>
+                    {% elif key == 'orders' %}
+                    {# Заявки — список с галочкой (clipboard) #}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                        <rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/>
+                    </svg>
+                    {% elif key == 'add' %}
+                    {# Добавить товар — плюс #}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14"/><path d="M5 12h14"/>
+                    </svg>
+                    {% elif key == 'receipts' %}
+                    {# Чеки за день — чек/квитанция #}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 21V5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v16l-3-2-2 2-2-2-2 2-2-2-3 2z"/>
+                        <path d="M9 9h6"/><path d="M9 13h6"/>
+                    </svg>
+                    {% endif %}
+                    <span>{{ title }}</span>
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Нижняя группа: завершить день (нативная форма → перезагрузка рамы),
+                 disabled пока день не начат; возврат — модалка поверх кассы (2.5). -->
+            <div class="side-day">
+                <form method="post" action="/work-day/close" class="day-close-form">
+                    <button type="submit" class="btn-side btn-day-finish"
+                            {{ 'disabled' if not day_open else '' }}>
+                        {# Завершить день — флажок #}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>
+                        </svg>
+                        <span>Завершить день</span>
+                    </button>
+                </form>
+                <button type="button" id="return-btn" class="btn-side btn-return">
+                    {# Возврат — стрелка назад #}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>
+                    </svg>
+                    <span>Возврат</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Оверлей модалки возврата. Тело подгружается по HTMX из /returns/modal. -->

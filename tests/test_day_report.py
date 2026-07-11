@@ -301,10 +301,13 @@ class TestReportRoutes:
         assert reports[0].sales_total == 2000
 
     def test_close_route_without_open_day(self, db, client):
+        # Закрывать нечего: /work-day/close перезагружает раму (redirect на "/"),
+        # документ не формируется. Из UI путь недостижим — кнопка «Завершить день»
+        # disabled при закрытом дне; проверяем защитное поведение эндпоинта.
         resp = client.post("/work-day/close")
-        assert resp.status_code == 200
-        assert "Нет открытого рабочего дня" in resp.text
+        assert resp.status_code == 200  # redirect на раму, TestClient прошёл по нему
         assert db.exec(select(DayReport)).all() == []
+        assert "Рабочий день не открыт" in resp.text  # рама в состоянии «день закрыт»
 
     def test_view_and_list_routes(self, db, client):
         open_day(db)

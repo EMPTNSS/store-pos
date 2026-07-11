@@ -1,0 +1,18 @@
+{# Баннер начала дня — во всю ширину, над панелью вкладок.
+   Виден ТОЛЬКО пока день закрыт: открытие дня перезагружает раму (POST-redirect-GET
+   в /work-day/open), и при day_open=True баннер не рендерится вовсе — исчезает по
+   реальному состоянию с бэкенда, а не прячется JS. Нативная форма работает и без htmx. #}
+{% if not day_open %}
+<div class="day-banner" id="day-banner">
+    <span class="day-banner-text">Рабочий день не открыт</span>
+    <form method="post" action="/work-day/open" class="day-banner-form">
+        <button type="submit" class="btn-day-start">Начать рабочий день</button>
+    </form>
+    {% if report_number %}
+    {# Документ дня только что сформирован при закрытии (7.1) — ведём к его просмотру. #}
+    <span class="day-banner-note">Документ дня №{{ report_number }} сформирован.</span>
+    <button type="button" class="btn-day-doc"
+            onclick="window.posShell && window.posShell.openReports()">Открыть документ</button>
+    {% endif %}
+</div>
+{% endif %}

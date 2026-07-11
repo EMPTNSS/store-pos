@@ -6,6 +6,7 @@
 """
 
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
@@ -40,18 +41,24 @@ templates.env.filters["quantity"] = format_quantity
 SECTIONS: dict[str, str] = {
     "products": "Товары",
     "orders": "Заявки",
-    "add": "Добавить",
+    "add": "Добавить товар",
     "receipts": "Чеки за день",
 }
 
 
 @router.get("/")
-async def shell_screen(request: Request, session: Session = Depends(get_session)):
+async def shell_screen(
+    request: Request,
+    report: Optional[int] = None,
+    session: Session = Depends(get_session),
+):
     """Страница-рама: ряд вкладок + панель кассы, встроенная на сервере.
 
     Встроенный шаблон кассы (`cashier/_cart.html`) читает живую корзину — передаём тот же
     контекст, что standalone-роут `/cashier`. Логика корзины/продажи не трогается.
-    ``day_open`` управляет строкой смены и показом формы завершения (блокировка кассы 7.1-prep).
+    ``day_open`` управляет баннером начала дня и кнопкой «Завершить день» (блокировка 7.1-prep).
+    ``report`` — номер только что сформированного документа дня: после закрытия смены
+    ``/work-day/close`` перезагружает раму с ?report=N, чтобы показать ссылку на документ.
     """
     return templates.TemplateResponse(
         request,
@@ -62,6 +69,7 @@ async def shell_screen(request: Request, session: Session = Depends(get_session)
             "error": None,
             "sale_result": None,
             "day_open": get_open_day(session) is not None,
+            "report_number": report,
         },
     )
 
