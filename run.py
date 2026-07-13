@@ -18,5 +18,5 @@ if __name__ == "__main__":
     # Второе окно — экран покупателя (этап 2.3). Открывается только по флагу конфига:
     # на одной машине с одним монитором fullscreen перекрыл бы кассу и мешал разработке.
     if settings.customer_display_window:
-        webview.create_window("Покупатель", f"{base_url}/customer", fullscreen=True)
+        webview.create_window("Покупатель", f"{base_url}/customer", width=1920, height=1200, fullscreen=True)
     webview.start()
