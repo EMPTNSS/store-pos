@@ -9,3 +9,6 @@ data/*.db-shm
 data/receipts/
 data/invoices/
 .pytest_cache/
+
+# одноразовые скрипты для ручной проверки (в репозиторий не идут)
+scripts/seed_test_products.py
