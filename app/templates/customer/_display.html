@@ -1,28 +1,32 @@
 {% if state.kind == "sale" %}
 {# Живой чек: товары, количество, цена, сумма и крупный итог (макет 20.2). #}
 <div class="cd-wrap">
-    <table class="cd-items">
-        <tbody>
-        {% for line in state.cart.lines %}
-            <tr>
-                <td>
-                    <div class="cd-name">{{ line.name }}</div>
-                    <div class="cd-meta">{{ line.quantity | quantity }} {{ line.unit.value }} × {{ line.price_sell | money }} ₽</div>
-                </td>
-                <td class="cd-sum">{{ line.total | money }} ₽</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    <div class="cd-total">Итого: {{ state.cart.grand_total | money }} ₽</div>
+    {# Список прокручивается ВНУТРИ своей области; «Итого» — снаружи, всегда видимо. #}
+    <div class="cd-list">
+        <table class="cd-items">
+            <tbody>
+            {% for line in state.cart.lines %}
+                <tr>
+                    <td>
+                        <div class="cd-name">{{ line.name }}</div>
+                        <div class="cd-meta">{{ line.quantity | quantity }} {{ line.unit.value }} × {{ line.price_sell | money }} ₽</div>
+                    </td>
+                    <td class="cd-sum">{{ line.total | money }} ₽</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {# Итог округлён вверх до целой ₽ (round_total_up), т.е. grand_total кратен 100 копейкам —
+       выводим целые рубли без хвоста «.00». Фильтр money здесь не нужен: он даёт «2595.00». #}
+    <div class="cd-total">Итого: {{ state.cart.grand_total // 100 }} ₽</div>
 </div>
 {% elif state.kind == "thanks" %}
 {# После оплаты — «Спасибо за покупку» (макет 20.4). #}
 <div class="cd-center">
+    {# Только заголовок: сумма и номер чека покупателю после оплаты не показываются.
+       Маркер state.sale при этом жив — он по-прежнему держит состояние «thanks». #}
     <div class="cd-thanks">{{ thanks_text }}</div>
-    {% if state.sale %}
-    <div class="cd-thanks-sum">Чек №{{ state.sale.number }} · {{ state.sale.total | money }} ₽</div>
-    {% endif %}
 </div>
 {% else %}
 {# Ожидание следующего покупателя. #}

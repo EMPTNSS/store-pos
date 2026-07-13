@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Экран покупателя</title>
-    <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+    <script src="/static/htmx.min.js"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; }
@@ -19,20 +19,45 @@
 
         /* Продажа: крупный список строк + очень крупный итог (макет 20.2, 20.3). */
         .cd-wrap { flex: 1; display: flex; flex-direction: column; padding: 4vh 5vw; }
+        /* Область списка: занимает место над «Итого» и прокручивается ВНУТРИ себя.
+           min-height:0 обязателен — иначе flex-элемент с min-height:auto не даёт себя
+           сжать, overflow не включается и список выталкивает «Итого» за экран.
+           Скроллбар скрыт: покупатель экран не трогает, промотка — автоматическая. */
+        .cd-list {
+            flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none;
+            padding-top: 4vh;
+            /* Затухание у ВЕРХНЕЙ кромки: уходящая вверх позиция растворяется, а не
+               обрывается — подсказка «список продолжается выше». Высота градиента равна
+               padding-top: padding у скролл-контейнера уползает вместе с контентом, поэтому
+               при коротком списке первая строка остаётся чёткой, а при прокрутке срез мягкий. */
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 4vh, #000 100%);
+            mask-image: linear-gradient(to bottom, transparent 0, #000 4vh, #000 100%);
+        }
+        .cd-list::-webkit-scrollbar { display: none; }
         .cd-items { width: 100%; border-collapse: collapse; font-size: 2.4rem; }
         .cd-items td { padding: 1.2vh 0; border-bottom: 1px solid #1e293b; vertical-align: top; }
+        /* Разделитель нужен только МЕЖДУ позициями: без этого линия последней строки
+           встаёт рядом с border-top блока «Итого» и читается как двойная. */
+        .cd-items tr:last-child td { border-bottom: none; }
         .cd-name { font-weight: 600; }
         .cd-meta { color: #94a3b8; font-size: 1.6rem; margin-top: 0.4vh; }
         .cd-sum { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
         .cd-total {
-            margin-top: auto; padding-top: 3vh; text-align: right;
+            /* Отделён от списка воздухом + тонкой линией. Закрепление внизу держит
+               flex:1 у .cd-list, а не margin-top:auto — поэтому здесь обычный отступ. */
+            margin-top: 3vh; padding-top: 3vh; border-top: 1px solid #1e293b;
+            text-align: right;
             font-size: 4.5rem; font-weight: 800; font-variant-numeric: tabular-nums;
         }
 
-        /* Благодарность / ожидание — по центру, максимально крупно. */
+        /* Благодарность / ожидание — по центру, максимально крупно.
+           Сдвиг к оптическому центру: геометрический центр под крупным заголовком читается
+           низковато. Живёт на общем классе обеих веток (thanks и idle) — так их заголовки
+           гарантированно на одном уровне и текст не прыгает при переключении состояний. */
         .cd-center {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center; text-align: center; padding: 5vw;
+            transform: translateY(-6vh);
         }
         .cd-thanks { font-size: 6rem; font-weight: 800; }
         .cd-thanks-sum { margin-top: 2vh; font-size: 2.2rem; color: #94a3b8; }
@@ -47,5 +72,14 @@
          hx-swap="innerHTML">
         {% include "customer/_display.html" %}
     </div>
+    <!-- Автопрокрутка списка к последним пробитым позициям: опрос пересоздаёт список
+         на каждом обновлении, поэтому мотаем вниз после каждого swap. Покупатель не
+         скроллит сам. Чистый addEventListener, без фреймворков (CLAUDE.md). -->
+    <script>
+        document.getElementById("display").addEventListener("htmx:afterSwap", function () {
+            var list = document.querySelector(".cd-list");
+            if (list) list.scrollTop = list.scrollHeight;
+        });
+    </script>
 </body>
 </html>
